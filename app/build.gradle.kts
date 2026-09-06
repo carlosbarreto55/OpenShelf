@@ -41,7 +41,20 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
+}
+
+fun String.toBuildConfigString(): String {
+    return "\"${replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")}\""
+}
+
+val paperReaderBackendBaseUrl = providers.gradleProperty("paperReaderBackendBaseUrl").orNull.orEmpty()
+val paperReaderRemoteMode = providers.gradleProperty("paperReaderRemoteMode").orNull ?: "fake"
+
+android.defaultConfig {
+    buildConfigField("String", "PAPER_READER_BACKEND_BASE_URL", paperReaderBackendBaseUrl.toBuildConfigString())
+    buildConfigField("String", "PAPER_READER_REMOTE_MODE", paperReaderRemoteMode.toBuildConfigString())
 }
 
 kotlin {

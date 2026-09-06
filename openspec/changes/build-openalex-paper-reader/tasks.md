@@ -9,13 +9,13 @@
 
 ## 2. Domain and Backend Interaction Contracts
 
-- [ ] 2.1 Define stable domain models for papers, authors, topics, queries, filters, sort order, cursor pages, saved state, access resolution, and download state.
-- [ ] 2.2 Define normalized serializable request/response DTOs for backend search, paper details, access refresh, and confirmed PDF download descriptors.
-- [ ] 2.3 Define `PaperRemoteDataSource`, `PaperRepository`, `LibraryRepository`, and download gateway interfaces without exposing transport or Room types to ViewModels.
-- [ ] 2.4 Implement DTO validation and mappers that reject invalid paper identity, tolerate unknown optional fields, and fail closed for unknown or malformed access descriptors.
-- [ ] 2.5 Add compile-time backend configuration and dependency-injection bindings that select a fake remote source by default and allow a future HTTP source without changing UI/domain code.
-- [ ] 2.6 Scaffold the inactive HTTP service and remote data-source implementation against a configurable PaperReader backend base URL, with no OpenAlex URL or API key embedded in the Android project.
-- [ ] 2.7 Add a repository error taxonomy for offline, timeout, HTTP, contract, access-validation, and unexpected failures, including safe user-facing mappings.
+- [x] 2.1 Define stable domain models for papers, authors, topics, queries, filters, sort order, cursor pages, saved state, access resolution, and download state.
+- [x] 2.2 Define normalized serializable request/response DTOs for backend search, paper details, access refresh, and confirmed PDF download descriptors.
+- [x] 2.3 Define `PaperRemoteDataSource`, `PaperRepository`, `LibraryRepository`, and download gateway interfaces without exposing transport or Room types to ViewModels.
+- [x] 2.4 Implement DTO validation and mappers that reject invalid paper identity, tolerate unknown optional fields, and fail closed for unknown or malformed access descriptors.
+- [x] 2.5 Add compile-time backend configuration and dependency-injection bindings that select a fake remote source by default and allow a future HTTP source without changing UI/domain code.
+- [x] 2.6 Scaffold the inactive HTTP service and remote data-source implementation against a configurable PaperReader backend base URL, with no OpenAlex URL or API key embedded in the Android project.
+- [x] 2.7 Add a repository error taxonomy for offline, timeout, HTTP, contract, access-validation, and unexpected failures, including safe user-facing mappings.
 
 ## 3. Placeholder Backend Experience
 
