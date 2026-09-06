@@ -1,3 +1,24 @@
 <resources>
     <string name="app_name">PaperReader</string>
+    <string name="brand_name">Lattice</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_downloads">Downloads</string>
+    <string name="search_hero_title">Find the work behind the idea.</string>
+    <string name="search_hero_description">Search across papers, preprints, reviews and repositories.</string>
+    <string name="search_field_label">Search papers</string>
+    <string name="search_field_placeholder">Try a topic like AI harness</string>
+    <string name="filter_all">All</string>
+    <string name="filter_open_access">Open access</string>
+    <string name="filter_pdf_available">PDF available</string>
+    <string name="search_shell_title">Your research space is ready.</string>
+    <string name="search_shell_description">Search, save, and revisit papers from one account-free workspace.</string>
+    <string name="library_title">Library</string>
+    <string name="library_description">Keep important papers close, even when you are offline.</string>
+    <string name="library_empty_title">Your library is empty</string>
+    <string name="library_empty_description">Saved papers will appear here for quick access.</string>
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_description">Track verified PDF transfers and open completed files.</string>
+    <string name="downloads_empty_title">No downloads yet</string>
+    <string name="downloads_empty_description">Confirmed PDF downloads will appear here.</string>
 </resources>
