@@ -19,55 +19,61 @@ import javax.inject.Inject
 class FakePaperRemoteDataSource @Inject constructor() : PaperRemoteDataSource {
     // Temporary demo-only data. Keep this list intentionally small because it stays in memory
     // until the backend and production fixture flow replace it.
-    private val placeholderPapers = listOf(
-        PaperDto(
-            id = "W2741809807",
-            title = "Harnessing Generative AI for Automated Feedback in Higher Education",
-            authors = listOf(
-                AuthorDto(name = "R. M. Mahoney"),
-                AuthorDto(name = "A. Chen"),
-            ),
-            venue = "Online Learning",
-            year = 2024,
-            type = "REVIEW",
-            topics = listOf(TopicDto(name = "Education")),
-            citationCount = 151,
-            access = AccessResolutionDto(
-                state = "DIRECT_PDF",
-                descriptor = ConfirmedPdfDownloadDescriptorDto(
-                    url = "https://demo.paperreader.invalid/papers/W2741809807.pdf",
-                    mimeType = "application/pdf",
-                    provenance = "Demo repository descriptor",
+    private val placeholderPapers = PlaceholderPaperCatalogBuilder()
+        .add(
+            PaperDto(
+                id = "W2741809807",
+                title = "Harnessing Generative AI for Automated Feedback in Higher Education",
+                authors = listOf(
+                    AuthorDto(name = "R. M. Mahoney"),
+                    AuthorDto(name = "A. Chen"),
+                ),
+                venue = "Online Learning",
+                year = 2024,
+                type = "REVIEW",
+                topics = listOf(TopicDto(name = "Education")),
+                citationCount = 151,
+                access = AccessResolutionDto(
+                    state = "DIRECT_PDF",
+                    descriptor = ConfirmedPdfDownloadDescriptorDto(
+                        url = "https://demo.paperreader.invalid/papers/W2741809807.pdf",
+                        mimeType = "application/pdf",
+                        provenance = "Demo repository descriptor",
+                    ),
                 ),
             ),
-        ),
-        PaperDto(
-            id = "W3123456789",
-            title = "Towards Sustainable Agriculture: Harnessing AI for Global Food Security",
-            authors = listOf(AuthorDto(name = "A. Javaid")),
-            venue = "Artificial Intelligence in Agriculture",
-            year = 2024,
-            type = "ARTICLE",
-            topics = listOf(TopicDto(name = "Agriculture")),
-            citationCount = 171,
-            access = AccessResolutionDto(
-                state = "OPEN_FULL_TEXT",
-                sourceUrl = "https://demo.paperreader.invalid/papers/W3123456789",
-                provenance = "Demo open HTML descriptor",
+        )
+        .add(
+            PaperDto(
+                id = "W3123456789",
+                title = "Towards Sustainable Agriculture: Harnessing AI for Global Food Security",
+                authors = listOf(AuthorDto(name = "A. Javaid")),
+                venue = "Artificial Intelligence in Agriculture",
+                year = 2024,
+                type = "ARTICLE",
+                topics = listOf(TopicDto(name = "Agriculture")),
+                citationCount = 171,
+                access = AccessResolutionDto(
+                    state = "OPEN_FULL_TEXT",
+                    sourceUrl = "https://demo.paperreader.invalid/papers/W3123456789",
+                    provenance = "Demo open HTML descriptor",
+                ),
             ),
-        ),
-        PaperDto(
-            id = "W3987654321",
-            title = "Empowering SMEs with Generative AI for Resilience",
-            authors = listOf(AuthorDto(name = "P. Chatterjee")),
-            venue = "Management Research Review",
-            year = 2024,
-            type = "ARTICLE",
-            topics = listOf(TopicDto(name = "Business")),
-            citationCount = 82,
-            access = AccessResolutionDto(state = "NO_FREE_FULL_TEXT"),
-        ),
-    )
+        )
+        .add(
+            PaperDto(
+                id = "W3987654321",
+                title = "Empowering SMEs with Generative AI for Resilience",
+                authors = listOf(AuthorDto(name = "P. Chatterjee")),
+                venue = "Management Research Review",
+                year = 2024,
+                type = "ARTICLE",
+                topics = listOf(TopicDto(name = "Business")),
+                citationCount = 82,
+                access = AccessResolutionDto(state = "NO_FREE_FULL_TEXT"),
+            ),
+        )
+        .build()
 
     override suspend fun search(request: PaperSearchRequestDto): RepositoryResult<PaperSearchResponseDto> {
         return RepositoryResult.Success(PaperSearchResponseDto(items = placeholderPapers))
@@ -106,5 +112,15 @@ class FakePaperRemoteDataSource @Inject constructor() : PaperRemoteDataSource {
         return RepositoryResult.Failure(
             RepositoryError.Contract(RepositoryError.ContractFailure.INVALID_PAPER_ID),
         )
+    }
+
+    private class PlaceholderPaperCatalogBuilder {
+        private val papers = mutableListOf<PaperDto>()
+
+        fun add(paper: PaperDto) = apply {
+            papers += paper
+        }
+
+        fun build(): List<PaperDto> = papers.toList()
     }
 }
