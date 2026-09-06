@@ -1,7 +1,7 @@
 ## 1. Android and Compose Foundation
 
-- [ ] 1.1 Add Kotlin Android, Compose, KSP, serialization, dependency-injection, Room, lifecycle, navigation, coroutines, networking, Paging 3, WorkManager, and test dependencies to the version catalog and Gradle files.
-- [ ] 1.2 Enable Compose and Kotlin/JVM compiler settings compatible with the existing minSdk 26 and compile/target SDK 36 configuration.
+- [x] 1.1 Add Kotlin Android, Compose, KSP, serialization, dependency-injection, Room, lifecycle, navigation, coroutines, networking, Paging 3, WorkManager, and test dependencies to the version catalog and Gradle files.
+- [x] 1.2 Enable Compose and Kotlin/JVM compiler settings compatible with the existing minSdk 26 and compile/target SDK 36 configuration.
 - [ ] 1.3 Add the application class, manifest wiring, single Compose activity, edge-to-edge window setup, and a minimal app root that builds and launches.
 - [ ] 1.4 Implement Material 3 color, type, shape, spacing, and light/dark theme tokens derived from `docs/ui/lattice-search-reference.png`.
 - [ ] 1.5 Add typed navigation routes and the Search, Library, and Downloads bottom navigation shell with placeholder destinations.
