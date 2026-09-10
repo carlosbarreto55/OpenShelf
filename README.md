@@ -55,7 +55,8 @@ With no backend configured, the app defaults to fake mode and is fully usable:
 
 ## Placeholder behavior (read this first)
 
-- **Search/paper data** comes from `FakePaperRemoteDataSource`, which reads fixture JSON through
+- **Search/paper data** comes from `FakePaperRemoteDataSource` (in `src/demo/`, so it ships only in
+  demo builds), which reads fixture JSON through
   the *same* DTOs, serializers, mappers, and Room persistence a real backend response would use —
   see [`docs/backend/demo-mode.md`](docs/backend/demo-mode.md) for exactly how that works and how
   to point the app at a real backend later.
@@ -79,6 +80,7 @@ happens to be complete.
 |---|---|---|
 | Remote source | `FakePaperRemoteDataSource` | `HttpPaperRemoteDataSource` |
 | Download gateway | `FakeDownloadManager` (simulated) | `WorkManagerDownloadGateway` (real transfers) |
+| Where the fakes live | `src/demo/` | **nowhere** — not on the classpath |
 | Backend URL | not used | **required**, `-PpaperReaderBackendBaseUrl=<url>` |
 | `INTERNET` permission | not declared | declared |
 | Missing/invalid URL | n/a | assembly fails with an actionable message |
@@ -95,6 +97,33 @@ happens to be complete.
 # Everything, both flavors, plus the source and packaged-artifact secret scans.
 ./gradlew :app:verifyBothFlavors        -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
 ```
+
+### Running from Android Studio
+
+Android Studio selects **`demoDebug`** by default, because `demo` sorts first alphabetically. That
+is the usual reason the app shows fixture data when you expected a live backend.
+
+1. **Pick the variant.** Build → Select Build Variant… (or the *Build Variants* panel on the left
+   edge) → set `app` to `integrationDebug`.
+2. **Give Gradle the backend address.** The Run ▶ button has nowhere to pass `-P`, so put it where
+   Gradle finds it on its own — add one line to `~/.gradle/gradle.properties` (machine-global, never
+   committed):
+
+   ```properties
+   paperReaderBackendBaseUrl=http://10.0.2.2:8080
+   ```
+
+3. **Run ▶.**
+
+Two things to know:
+
+- **Release builds then need an explicit override**, because `integrationRelease` rejects cleartext:
+  `./gradlew :app:assembleIntegrationRelease -PpaperReaderBackendBaseUrl=https://…`. A `-P` flag
+  always wins over the properties file.
+- **The two flavors install as two separate apps.** `demo` carries
+  `applicationIdSuffix = ".demo"`, so `com.example.paperReader.demo` and `com.example.paperReader`
+  coexist on a device. If you have run both, there are two launcher icons — check which one you are
+  opening before concluding the backend is not wired up.
 
 Omitting the URL is not a soft failure:
 
@@ -189,9 +218,10 @@ full state table.
   for both cache and user-owned data (saved papers, downloads). Full breakdown in
   [`docs/architecture.md`](docs/architecture.md).
 - **Backend-ready data layer**: `PaperRemoteDataSource` is implemented by both
-  `FakePaperRemoteDataSource` and `HttpPaperRemoteDataSource`, selected by product flavor with no UI
-  or domain code change either way. One scenario matrix (`RemoteModeParityTest`) asserts both
-  produce the same repository-level outcomes.
+  `FakePaperRemoteDataSource` and `HttpPaperRemoteDataSource`, selected by product flavor at
+  **compile time** — each flavor's Hilt module binds its own, so the fakes are not on an integration
+  build's classpath at all. One scenario matrix (`RemoteModeParityTest`) asserts both produce the
+  same repository-level outcomes.
 - **Cursor-based pagination** throughout, no page numbers. A query-scoped cursor session traverses a
   bounded number of empty pages, detects a repeated cursor, and never presents "no matches" while a
   cursor remains.

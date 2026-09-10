@@ -6,7 +6,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 
-/** Isolates the one `FileProvider` call a completed download makes so [FakeDownloadManager] and
+/** Isolates the one `FileProvider` call a completed download makes so the demo download manager and
  * [PdfDownloadWorker] are testable without a real, manifest-resolved `FileProvider` (Robolectric
  * does not reliably resolve one in a plain unit test). */
 fun interface ContentUriProvider {

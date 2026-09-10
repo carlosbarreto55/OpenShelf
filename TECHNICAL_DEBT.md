@@ -296,7 +296,8 @@ These decisions are final unless explicitly revisited:
   happens to be complete. The backend URL is the only external input; a missing, malformed, or
   cleartext-in-release URL fails assembly with an actionable message and never substitutes fake data
   or the simulated download gateway. No OpenAlex credential is present in either APK.
-- **Evidence:** `BackendConfigurationTest`, `BackendSelectionTest`, per-flavor
+- **Evidence:** `BackendConfigurationTest`, `DemoBackendSelectionTest` /
+  `IntegrationBackendSelectionTest`, per-flavor
   `DemoFlavorConfigurationTest`/`IntegrationFlavorConfigurationTest`;
   `./gradlew :app:verifyBothFlavors -PpaperReaderBackendBaseUrl=<url>` assembles and tests both
   modes and runs `checkNoOpenAlexSecret` plus `checkNoOpenAlexSecretInArtifacts`.

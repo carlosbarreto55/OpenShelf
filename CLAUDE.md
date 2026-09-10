@@ -106,14 +106,20 @@ Retrofit, DAOs, or download APIs directly.
 - `data/remote/HttpPaperRemoteDataSource.kt` — status policy lives here: 400 → `InvalidRequest`,
   404 → `NotFound`, 502 and 503 → `ServiceUnavailable`, 504 → `Timeout`, everything else keeps its
   code. Response bodies from error statuses are never read.
-- `data/remote/FakePaperRemoteDataSource.kt` — the demo source, plus `FakeRemoteScenario` for
-  reproducing not-found, no-PDF, empty cursor pages, 502/504, mismatched identity, and malformed
-  data as the *same* repository-level outcomes HTTP produces.
+- `src/demo/.../data/remote/FakePaperRemoteDataSource.kt` — the demo source, plus
+  `FakeRemoteScenario` for reproducing not-found, no-PDF, empty cursor pages, 502/504, mismatched
+  identity, and malformed data as the *same* repository-level outcomes HTTP produces. It lives in
+  the **`demo` source set**, not `main`, so no fake implementation exists in an integration build;
+  `IntegrationBackendSelectionTest` asserts the classes cannot even be loaded there.
 - `data/local/` — Room. `SearchCacheDao.persistPage` is the single transactional write path for a
   mapped page.
 - `ui/` — one package per feature (`search`, `paperdetail`, `library`, `downloads`) plus shared
   `components/`, `navigation/`, `theme/`. `MaterialTheme.spacing` is the spacing token source; do
   not hardcode `dp`.
+- `di/` — `BackendModule` (in `main`) provides only `BackendConfiguration`. **Which** remote source
+  and download gateway the app gets is bound per flavor: `src/demo/.../di/DemoBackendModule.kt` and
+  `src/integration/.../di/IntegrationBackendModule.kt`. There is no runtime mode switch to get
+  wrong — picking the wrong implementation is a compile error, not a branch.
 
 ## Rules to preserve
 

@@ -2,16 +2,11 @@ package com.example.paperReader.di
 
 import android.content.Context
 import androidx.work.WorkManager
-import com.example.paperReader.core.config.BackendConfiguration
-import com.example.paperReader.core.config.BackendMode
 import com.example.paperReader.data.download.ContentUriProvider
 import com.example.paperReader.data.download.DownloadFileStorage
-import com.example.paperReader.data.download.FakeDownloadManager
 import com.example.paperReader.data.download.FileProviderContentUriProvider
 import com.example.paperReader.data.download.OkHttpPdfFetcher
 import com.example.paperReader.data.download.PdfHttpFetcher
-import com.example.paperReader.data.download.WorkManagerDownloadGateway
-import com.example.paperReader.domain.repository.DownloadGateway
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -19,7 +14,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import java.io.File
-import javax.inject.Provider
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import okhttp3.OkHttpClient
@@ -49,18 +43,6 @@ object DownloadModule {
     @Singleton
     fun provideDownloadFileStorage(@DownloadsDir downloadsDir: File): DownloadFileStorage = DownloadFileStorage(downloadsDir)
 
-    @Provides
-    @Singleton
-    fun provideDownloadGateway(
-        configuration: BackendConfiguration,
-        fakeProvider: Provider<FakeDownloadManager>,
-        workManagerProvider: Provider<WorkManagerDownloadGateway>,
-    ): DownloadGateway {
-        return when (configuration.mode) {
-            BackendMode.HTTP -> workManagerProvider.get()
-            BackendMode.FAKE -> fakeProvider.get()
-        }
-    }
 }
 
 @Module

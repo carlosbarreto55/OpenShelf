@@ -26,15 +26,15 @@ domain/
 data/
   remote/       DTOs (dto/PaperDtos.kt), PaperMappers (DTO -> domain, fail-closed access rules),
                 RequestMappers (domain -> request DTO), RemoteJson (shared kotlinx.serialization
-                config), PaperRemoteDataSource interface, and its two implementations:
-                FakePaperRemoteDataSource (the `demo` flavor) and HttpPaperRemoteDataSource (the
-                `integration` flavor). Both are real implementations; one scenario matrix asserts
-                they produce identical repository-level outcomes.
-  remote/fixtures/  Deterministic JSON fixtures the fake source reads, shaped like real DTOs.
+                config), the PaperRemoteDataSource interface, and HttpPaperRemoteDataSource.
+                FakePaperRemoteDataSource lives in src/demo/ instead, so it is absent from an
+                integration build entirely. Both are real implementations; one scenario matrix
+                asserts they produce identical repository-level outcomes.
   local/        Room entities/DAOs/database/migrations, LocalMappers (Room row -> domain, which
                 re-validates access state on every read — see "Room as source of truth" below).
   repository/   Repository implementations coordinating a remote source with Room.
-  download/     WorkManager-based production download worker/gateway plus FakeDownloadManager.
+  download/     WorkManager-based production download worker/gateway. FakeDownloadManager and the
+                fixture catalog it serves live in src/demo/ (see "Build modes").
 
 ui/
   search/, paperdetail/, library/, downloads/   One package per feature: Screen composable,
@@ -101,8 +101,8 @@ bump) and asserts `MIGRATION_1_2` upgrades it in place without losing rows.
 
 ## Fake-mode behavior
 
-See `docs/backend/demo-mode.md` for the full picture: `FakePaperRemoteDataSource` is the default
-`PaperRemoteDataSource` binding, and it routes fixture JSON through the same DTOs, serializers,
+See `docs/backend/demo-mode.md` for the full picture: `FakePaperRemoteDataSource` is the `demo`
+flavor's `PaperRemoteDataSource` binding, and it routes fixture JSON through the same DTOs, serializers,
 mappers, and Room persistence a real HTTP response would use — never hard-coded UI models. The app
 shows a `DemoDataNotice` banner whenever it's running in fake mode so this is never mistaken for a
 live integration.
@@ -117,9 +117,17 @@ configuration happens to be complete. There is no `paperReaderRemoteMode` proper
 | `BackendMode` | `FAKE`, hardcoded in the flavor's BuildConfig | `HTTP`, hardcoded |
 | Remote source | `FakePaperRemoteDataSource` | `HttpPaperRemoteDataSource` |
 | Download gateway | `FakeDownloadManager` | `WorkManagerDownloadGateway` |
+| Where those live | `src/demo/` only | `src/main/`, bound by `src/integration/` |
+| Bound by | `DemoBackendModule` | `IntegrationBackendModule` |
 | Backend URL | not used | required: `-PpaperReaderBackendBaseUrl=<url>` |
 | `INTERNET` permission | absent | declared in `src/integration/AndroidManifest.xml` |
 | Cleartext | none | `integrationDebug` only, and only for `10.0.2.2`, `localhost`, `127.0.0.1` |
+
+Selection is **compile-time, not runtime**. `BackendModule` in `src/main` provides only
+`BackendConfiguration`; each flavor's own Hilt module binds its implementations. The demo fakes are
+therefore not merely unreachable in an integration build — they are not on its classpath at all, and
+`IntegrationBackendSelectionTest` asserts `Class.forName` fails for each of them. This replaced an
+earlier `when (configuration.mode)` switch whose two branches both shipped in every APK.
 
 `BackendConfiguration.resolve` is the single validation point. A missing URL, an unparseable URL, a
 cleartext URL in a release build, or cleartext to a host outside the loopback allowlist each

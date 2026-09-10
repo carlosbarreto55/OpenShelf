@@ -2,7 +2,8 @@
 
 The `demo` product flavor shows placeholder data. Everything it displays — search results, paper
 metadata, access states, download descriptors — comes from `FakePaperRemoteDataSource`
-(`app/src/main/java/com/example/paperReader/data/remote/FakePaperRemoteDataSource.kt`), **not** a
+(`app/src/demo/java/com/example/paperReader/data/remote/FakePaperRemoteDataSource.kt` — the `demo`
+source set, so it is absent from an integration build), **not** a
 live OpenAlex or PaperReader backend integration. The demo APK does not even declare the `INTERNET`
 permission.
 
