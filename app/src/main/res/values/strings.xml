@@ -13,6 +13,27 @@
     <string name="filter_pdf_available">PDF available</string>
     <string name="search_shell_title">Your research space is ready.</string>
     <string name="search_shell_description">Search, save, and revisit papers from one account-free workspace.</string>
+    <string name="search_sort_label">Sort by %1$s</string>
+    <string name="search_sort_relevance">Relevance</string>
+    <string name="search_sort_newest">Newest</string>
+    <string name="search_sort_citations">Most cited</string>
+    <string name="search_loading_message">Searching papers</string>
+    <string name="search_empty_title">No results for \"%1$s\"</string>
+    <string name="search_empty_description">Try a different topic or adjust your filters.</string>
+    <string name="search_clear_filters">Clear filters</string>
+    <string name="search_append_error">Couldn\'t load more results</string>
+    <string name="search_append_retry">Retry</string>
+    <string name="search_recent_label">Recent</string>
+    <!-- "Showing N" is a count of what is on screen; it never claims to be the matched total. -->
+    <plurals name="search_result_count">
+        <item quantity="one">Showing %1$d paper for \"%2$s\"</item>
+        <item quantity="other">Showing %1$d papers for \"%2$s\"</item>
+    </plurals>
+    <!-- Used only when the data source actually supplied a matched total. -->
+    <plurals name="search_result_count_of_total">
+        <item quantity="one">Showing %1$d of %2$d papers for \"%3$s\"</item>
+        <item quantity="other">Showing %1$d of %2$d papers for \"%3$s\"</item>
+    </plurals>
     <string name="library_title">Library</string>
     <string name="library_description">Keep important papers close, even when you are offline.</string>
     <string name="library_empty_title">Your library is empty</string>
@@ -21,4 +42,30 @@
     <string name="downloads_description">Track verified PDF transfers and open completed files.</string>
     <string name="downloads_empty_title">No downloads yet</string>
     <string name="downloads_empty_description">Confirmed PDF downloads will appear here.</string>
+    <string name="downloads_state_queued">Queued</string>
+    <string name="downloads_state_running">Downloading</string>
+    <string name="downloads_state_completed">Completed</string>
+    <string name="downloads_state_failed">Failed</string>
+    <string name="downloads_state_canceled">Canceled</string>
+    <string name="downloads_action_cancel">Cancel</string>
+    <string name="downloads_action_retry">Retry</string>
+    <string name="downloads_action_open">Open</string>
+    <string name="downloads_no_viewer_message">No app on this device can open this file.</string>
+    <string name="downloads_demo_placeholder_notice">Demo placeholder — not a real PDF.</string>
+    <string name="demo_data_notice">Demo data — no live backend connected yet.</string>
+    <string name="search_more_pages_title">Still looking</string>
+    <string name="search_more_pages_description">The service has more pages to check for this search. Continue to keep looking.</string>
+    <string name="search_more_pages_action">Keep looking</string>
+    <string name="filter_year_label">Publication year</string>
+    <string name="filter_year_placeholder">Year</string>
+    <string name="filter_year_selected">Publication year %1$d, selected</string>
+    <string name="filter_year_clear">Clear publication year</string>
+    <string name="filter_year_invalid">Enter a year between %1$d and %2$d.</string>
+    <string name="filter_type_label">Work type</string>
+    <string name="filter_type_clear">Clear work type</string>
+    <string name="filter_type_article">Article</string>
+    <string name="filter_type_review">Review</string>
+    <string name="filter_type_preprint">Preprint</string>
+    <string name="filter_type_book_chapter">Book chapter</string>
+    <string name="filter_type_dataset">Dataset</string>
 </resources>

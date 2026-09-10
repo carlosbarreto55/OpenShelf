@@ -1,0 +1,8 @@
+{
+  "name": "search-open-access-only",
+  "description": "An enabled restriction is sent as the literal value true.",
+  "method": "GET",
+  "path": "/v1/papers/search",
+  "query": { "query": "machine learning", "sort": "relevance", "open_access": "true" },
+  "absent_query_parameters": ["cursor", "pdf_available", "publication_year", "work_type", "topic"]
+}

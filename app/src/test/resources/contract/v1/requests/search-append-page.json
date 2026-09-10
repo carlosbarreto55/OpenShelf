@@ -1,0 +1,13 @@
+{
+  "name": "search-append-page",
+  "description": "Cursor, sort and publication year travel together on an append request.",
+  "method": "GET",
+  "path": "/v1/papers/search",
+  "query": {
+    "query": "climate modelling",
+    "sort": "newest",
+    "cursor": "cursor-page-2",
+    "publication_year": "2023"
+  },
+  "absent_query_parameters": ["open_access", "pdf_available", "work_type", "topic"]
+}

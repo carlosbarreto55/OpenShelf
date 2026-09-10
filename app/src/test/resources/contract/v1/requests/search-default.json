@@ -1,0 +1,15 @@
+{
+  "name": "search-default",
+  "description": "No restriction is active, so no optional restriction parameter is expressed at all.",
+  "method": "GET",
+  "path": "/v1/papers/search",
+  "query": { "query": "machine learning", "sort": "relevance" },
+  "absent_query_parameters": [
+    "cursor",
+    "open_access",
+    "pdf_available",
+    "publication_year",
+    "work_type",
+    "topic"
+  ]
+}

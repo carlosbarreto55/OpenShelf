@@ -1,0 +1,48 @@
+{
+  "items": [
+    {
+      "id": "W2301",
+      "title": "Confirmed direct PDF",
+      "access": {
+        "state": "DIRECT_PDF",
+        "descriptor": { "url": "https://cdn.example.org/W2301.pdf", "mime_type": "application/pdf" }
+      }
+    },
+    {
+      "id": "W2302",
+      "title": "Open full text",
+      "access": { "state": "OPEN_FULL_TEXT", "source_url": "https://example.org/reader/W2302" }
+    },
+    { "id": "W2303", "title": "No free full text", "access": { "state": "NO_FREE_FULL_TEXT" } },
+    { "id": "W2304", "title": "Paywalled", "access": { "state": "PAYWALLED" } },
+    { "id": "W2305", "title": "Checking", "access": { "state": "CHECKING" } },
+    { "id": "W2306", "title": "Errored", "access": { "state": "ERROR" } },
+    { "id": "W2307", "title": "Unknown future state", "access": { "state": "QUANTUM_ACCESS" } },
+    { "id": "W2308", "title": "Absent access" },
+    {
+      "id": "W2309",
+      "title": "Direct PDF with cleartext descriptor",
+      "access": {
+        "state": "DIRECT_PDF",
+        "descriptor": { "url": "http://cdn.example.org/W2309.pdf", "mime_type": "application/pdf" }
+      }
+    },
+    {
+      "id": "W2310",
+      "title": "Direct PDF with no descriptor",
+      "access": { "state": "DIRECT_PDF", "descriptor": null }
+    },
+    {
+      "id": "W2311",
+      "title": "Open full text with cleartext source",
+      "access": { "state": "OPEN_FULL_TEXT", "source_url": "http://example.org/reader/W2311" }
+    },
+    {
+      "id": "W2312",
+      "title": "Open full text with credentials in source",
+      "access": { "state": "OPEN_FULL_TEXT", "source_url": "https://user:pass@example.org/reader" }
+    }
+  ],
+  "next_cursor": null,
+  "total_count": 12
+}

@@ -1,0 +1,48 @@
+{
+  "items": [
+    {
+      "id": "W2001",
+      "title": "Attention mechanisms for scientific retrieval",
+      "authors": [
+        { "id": "A1", "name": "Ada Reyes", "orcid": "0000-0001-0000-0001" },
+        { "id": "A2", "name": "Bo Lindqvist" }
+      ],
+      "venue": "Journal of Retrieval",
+      "year": 2021,
+      "type": "article",
+      "topics": [{ "id": "T1", "name": "information retrieval", "score": 0.91 }],
+      "citation_count": 412,
+      "abstract": "A study of attention mechanisms applied to scientific retrieval.",
+      "access": {
+        "state": "DIRECT_PDF",
+        "source_url": "https://example.org/papers/W2001",
+        "descriptor": {
+          "url": "https://cdn.example.org/W2001.pdf",
+          "mime_type": "application/pdf",
+          "provenance": "publisher",
+          "generated": false
+        },
+        "provenance": "publisher"
+      }
+    },
+    {
+      "id": "W2002",
+      "title": "Open access adoption across disciplines",
+      "authors": [{ "name": "Cai Moreau" }],
+      "venue": "Scientometrics Today",
+      "year": 2019,
+      "type": "review",
+      "topics": [{ "name": "open science" }],
+      "citation_count": 87,
+      "abstract": null,
+      "access": {
+        "state": "OPEN_FULL_TEXT",
+        "source_url": "https://example.org/reader/W2002",
+        "descriptor": null,
+        "provenance": "repository"
+      }
+    }
+  ],
+  "next_cursor": "cursor-page-2",
+  "total_count": 125
+}

@@ -13,7 +13,15 @@ interface DownloadGateway {
         descriptor: ConfirmedPdfDescriptor,
     ): RepositoryResult<DownloadRecord>
 
-    suspend fun retry(downloadId: String): RepositoryResult<DownloadRecord>
+    /**
+     * [descriptor] is the descriptor the backend returned moments ago, not the one stored with the
+     * record. A retry must transfer from the current location, so the gateway replaces whatever it
+     * had persisted before scheduling work (business decision 5).
+     */
+    suspend fun retry(
+        downloadId: String,
+        descriptor: ConfirmedPdfDescriptor,
+    ): RepositoryResult<DownloadRecord>
 
     suspend fun cancel(downloadId: String): RepositoryResult<Unit>
 }

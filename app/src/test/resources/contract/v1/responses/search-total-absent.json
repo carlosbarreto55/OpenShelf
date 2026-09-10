@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "id": "W2003",
+      "title": "Cursor pagination without totals",
+      "authors": [{ "name": "Dina Ortiz" }],
+      "year": 2023,
+      "type": "preprint",
+      "access": { "state": "NO_FREE_FULL_TEXT" }
+    }
+  ],
+  "next_cursor": "cursor-page-2"
+}

@@ -1,0 +1,8 @@
+{
+  "paper_id": "W2001",
+  "descriptor": {
+    "url": "https://cdn.example.org/W2001-expired.pdf",
+    "mime_type": "application/pdf",
+    "expires_at_epoch_millis": 1000000000000
+  }
+}

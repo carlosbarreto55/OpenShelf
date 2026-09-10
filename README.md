@@ -1,0 +1,261 @@
+# PaperReader
+
+An account-free Jetpack Compose Android app for discovering scholarly papers, seeing conservative,
+backend-verified access information, and keeping useful results locally — built as a demonstration
+of a production-shaped MVVM/Compose architecture ahead of a real backend integration.
+
+> **The `demo` build runs entirely on placeholder data.** Every search result, paper, access state,
+> and downloaded file it shows comes from a deterministic fake data source and a simulated download
+> pipeline — see [Placeholder behavior](#placeholder-behavior-read-this-first) before treating
+> anything you see as real bibliographic data or a real PDF.
+>
+> There is a second build, `integration`, that talks to a real PaperReader backend over HTTP. It is
+> a separate product flavor, not a runtime switch, and it fails to assemble without a valid backend
+> URL rather than quietly falling back to demo data. The PaperReader server itself is still being
+> built, so live release remains gated — see [Build modes](#build-modes) and
+> [Live-backend status](#live-backend-status).
+
+## Screenshots
+
+All screenshots below are genuine renders of the app's actual Compose code (captured by the
+Roborazzi screenshot tests under `app/src/test/screenshots/`), not mockups.
+
+| Search (reference look) | Confirmed PDF | Confirmed open access | No accessible full text |
+|---|---|---|---|
+| ![Search screen](app/src/test/screenshots/search_reference_state.png) | ![Paper card with a Download PDF action](app/src/test/screenshots/paper_card_confirmed_pdf.png) | ![Paper card with a Read online action](app/src/test/screenshots/paper_card_confirmed_open_full_text.png) | ![Paper card with no access action](app/src/test/screenshots/paper_card_metadata_only.png) |
+
+| Loading | Empty results | Recoverable error |
+|---|---|---|
+| ![Loading state](app/src/test/screenshots/loading_state.png) | ![Empty state](app/src/test/screenshots/empty_state.png) | ![Error state with retry](app/src/test/screenshots/error_state.png) |
+
+Note the third and fourth card screenshots: a paper with no confirmed free full text renders with
+**no** badge, lock, source link, or button at all — only its bibliographic metadata. That's the
+product's central access rule, not a missing feature; see [Verified access](#verified-access).
+
+## Demo walkthrough
+
+With no backend configured, the app defaults to fake mode and is fully usable:
+
+1. Launch the app — a "Demo data" banner confirms fake mode is active, and the Search tab loads
+   with recent-query suggestions.
+2. Search "generative AI". Results appear with title, authors, venue, year, type, citation count,
+   and topic; some show **Download PDF** or **Read online**, most show neither.
+3. Toggle the **Open access** / **PDF available** filters, enter a publication year, pick a work
+   type, and change the sort order — the result set and ordering update accordingly, and each
+   filter can be cleared on its own or all at once.
+4. Tap a card to open its detail screen (full author list, abstract, the same access action).
+5. Tap the bookmark icon to save a paper, then check the Library tab — it appears there with the
+   same access rendering rules.
+6. Tap **Download PDF** on an eligible paper, then check the Downloads tab: queued → running
+   (simulated progress) → completed, with cancel/retry available mid-flight. The completed item is
+   clearly labeled as a demo placeholder, not a real PDF (see below).
+7. Turn on airplane mode and relaunch: previously loaded search results and saved papers are still
+   visible from the local Room cache, with a stale-data notice and a refresh action.
+
+## Placeholder behavior (read this first)
+
+- **Search/paper data** comes from `FakePaperRemoteDataSource`, which reads fixture JSON through
+  the *same* DTOs, serializers, mappers, and Room persistence a real backend response would use —
+  see [`docs/backend/demo-mode.md`](docs/backend/demo-mode.md) for exactly how that works and how
+  to point the app at a real backend later.
+- **Downloaded files are never real PDFs.** The placeholder download pipeline writes a small
+  disclaimer text file and simulates queue/progress/failure/cancel/retry through persisted download
+  records; the Downloads screen visibly labels any completed placeholder item as a demo file. The
+  production download path (`PdfDownloadWorker`, MIME/`%PDF-` signature validation) exists and is
+  tested, but is only exercised once a backend supplies a confirmed PDF descriptor.
+- **No OpenAlex key or direct OpenAlex call exists in this app**, in either flavor. Two
+  repository-wide Gradle checks (`checkNoOpenAlexSecret`, wired into `:app:check`, and
+  `checkNoOpenAlexSecretInArtifacts`, which runs after every `assemble*`) fail the build if one is
+  ever introduced — see [`docs/backend/api-contract.md`](docs/backend/api-contract.md) for what a
+  real backend is expected to own instead.
+
+## Build modes
+
+The backend mode is a property of the build, never inferred at runtime from whether configuration
+happens to be complete.
+
+| | `demo` | `integration` |
+|---|---|---|
+| Remote source | `FakePaperRemoteDataSource` | `HttpPaperRemoteDataSource` |
+| Download gateway | `FakeDownloadManager` (simulated) | `WorkManagerDownloadGateway` (real transfers) |
+| Backend URL | not used | **required**, `-PpaperReaderBackendBaseUrl=<url>` |
+| `INTERNET` permission | not declared | declared |
+| Missing/invalid URL | n/a | assembly fails with an actionable message |
+
+```bash
+# Demo: no backend, no network.
+./gradlew :app:assembleDemoDebug
+./gradlew :app:verifyDemo                 # assemble + JVM tests + lint
+
+# Integration: needs a backend address.
+./gradlew :app:assembleIntegrationDebug -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
+./gradlew :app:verifyIntegration        -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
+
+# Everything, both flavors, plus the source and packaged-artifact secret scans.
+./gradlew :app:verifyBothFlavors        -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
+```
+
+Omitting the URL is not a soft failure:
+
+```
+> Cannot assemble integrationDebug: no PaperReader backend base URL was supplied.
+  Pass -PpaperReaderBackendBaseUrl=<url> or set it in gradle.properties;
+  the integration flavor never falls back to demo data.
+```
+
+### Reaching a local server
+
+`integrationDebug` — and only `integrationDebug` — carries a network-security configuration that
+permits cleartext to three loopback development hosts. Any other host must use HTTPS, in debug as
+well as release.
+
+| Target | Backend URL | Setup |
+|---|---|---|
+| Emulator | `http://10.0.2.2:8080` | `10.0.2.2` is the host machine as seen from the emulator |
+| Physical device over USB | `http://localhost:8080` | `adb reverse tcp:8080 tcp:8080` first |
+| Anything else | `https://...` | no cleartext exception exists for it |
+
+### Release transport
+
+`integrationRelease` accepts only an HTTPS base URL and contains no cleartext exception. Both
+halves are checked:
+
+```bash
+./gradlew :app:assembleIntegrationRelease -PpaperReaderBackendBaseUrl=http://api.example.com
+# > Cannot assemble integrationRelease: "http://api.example.com" is cleartext.
+#   An integration-release build must use https.
+
+./gradlew :app:verifyIntegrationReleaseNetworkPolicy -PpaperReaderBackendBaseUrl=https://api.example.com
+# > integrationRelease: Internet permission present, no cleartext exception.
+```
+
+## Live-backend status
+
+| Capability | Status |
+|---|---|
+| Demo mode (search, detail, library, simulated downloads, offline cache) | works today |
+| Integration build, network permission, local HTTP development route | implemented |
+| Request/response/error semantics against a pinned v1 contract | implemented and tested |
+| Real bibliographic results, verified access, real PDFs | **blocked on the PaperReader server** |
+| Shared consumer/provider contract verification (SHR-001/SHR-002) | **blocked** — provider CI has not verified the pinned bundle |
+| v1 deprecation window / minimum-client policy (SHR-003) | **blocked** — needs release-management agreement |
+
+`TECHNICAL_DEBT.md` is the authoritative register; `docs/api-compatibility.md` records the pinned
+contract version and the rules for changing it;
+[`docs/android-debt-verification-matrix.md`](docs/android-debt-verification-matrix.md) maps each
+register item to the exact check that closes it.
+
+### Controlled end-to-end check
+
+`app/src/androidTestIntegration/.../LiveBackendConnectivityTest.kt` runs a local HTTP server on the
+device itself, serves the pinned contract fixtures over the documented loopback host, and completes
+a **validated** PDF transfer (a body that is not a real PDF is rejected even on a `200`). It needs
+a connected device or emulator, and carries no credential of any kind:
+
+```bash
+./gradlew :app:connectedIntegrationDebugAndroidTest -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
+```
+
+## Verified access
+
+An access action is shown **only** for a paper whose normalized access state is a backend-confirmed
+`DIRECT_PDF` (valid HTTPS download descriptor) or `OPEN_FULL_TEXT` (valid HTTPS source URL). Every
+other state — not free, paywalled, unknown, still checking, or a failed verification — renders with
+no badge, lock, source link, or button, on every screen that shows a paper (search, detail, saved
+library). This fail-closed mapping happens in exactly one place
+(`ui/components/AccessPresentation.kt`'s `toAccessAction()`), is re-applied every time a paper is
+re-read from the local Room cache (not just on a fresh network response), and a cached actionable
+state older than 24h is downgraded to "unknown" rather than trusted indefinitely. See
+[`docs/backend/api-contract.md`](docs/backend/api-contract.md#the-access-state-contract) for the
+full state table.
+
+## Architecture highlights
+
+- **Compose + MVVM + Hilt**, unidirectional `StateFlow<UiState>`, Room as the local source of truth
+  for both cache and user-owned data (saved papers, downloads). Full breakdown in
+  [`docs/architecture.md`](docs/architecture.md).
+- **Backend-ready data layer**: `PaperRemoteDataSource` is implemented by both
+  `FakePaperRemoteDataSource` and `HttpPaperRemoteDataSource`, selected by product flavor with no UI
+  or domain code change either way. One scenario matrix (`RemoteModeParityTest`) asserts both
+  produce the same repository-level outcomes.
+- **Cursor-based pagination** throughout, no page numbers. A query-scoped cursor session traverses a
+  bounded number of empty pages, detects a repeated cursor, and never presents "no matches" while a
+  cursor remains.
+- **Transfer-time download confirmation**: every initial and retried download re-fetches the
+  descriptor from `GET /v1/papers/{id}/download` and enqueues only from that fresh, validated,
+  unexpired HTTPS result — never from one cached in a paper or download record.
+- **Material 3 theme** derived from `docs/ui/lattice-search-reference.png` — see design.md decision
+  7 for how literally that reference is followed.
+- Per-capability behavior specs (given/when/then) live under
+  [`openspec/specs/`](openspec/specs/); the design rationale for the original milestone is archived
+  at
+  [`openspec/changes/archive/2026-09-08-build-openalex-paper-reader/design.md`](openspec/changes/archive/2026-09-08-build-openalex-paper-reader/design.md).
+  Work in progress lives under [`openspec/changes/`](openspec/changes/).
+
+## Running it
+
+```bash
+./gradlew :app:assembleDemoDebug                # build the demo APK
+./gradlew :app:testDemoDebugUnitTest            # JVM unit + Robolectric + screenshot tests
+./gradlew :app:verifyApiContract                # pinned v1 consumer-contract + fake/HTTP parity
+./gradlew :app:atdDemoDebugAndroidTest          # instrumented/Compose tests on a managed emulator
+./gradlew :app:lintDemoDebug                    # Android lint
+./gradlew checkNoOpenAlexSecret                 # repository-wide secret scan (also part of :app:check)
+```
+
+Every task name now carries a flavor: `testDemoDebugUnitTest` and `testIntegrationDebugUnitTest`
+rather than `testDebugUnitTest`. See [Build modes](#build-modes) for the integration equivalents.
+
+### Instrumentation tests
+
+Instrumentation runs on a **build-managed device** declared in `app/build.gradle.kts`, so there is
+no emulator to create or boot by hand — Gradle downloads the image, starts it, runs the tests, and
+tears it down:
+
+```bash
+./gradlew :app:atdDemoDebugAndroidTest
+./gradlew :app:atdIntegrationDebugAndroidTest -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
+./gradlew :app:verifyConnected                -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080  # both
+```
+
+The device is a Pixel 6 on API 33 using an **`aosp-atd`** image — an Automated Test Device with no
+Play Store, GMS or SystemUI, which removes the background services that make instrumentation flaky
+and keeps the image light. On Apple Silicon the `arm64-v8a` variant is selected automatically, so it
+runs natively without Rosetta. Its AVD is created under `~/.android/avd/gradle-managed/` and does
+not touch any AVD you created yourself.
+
+Any hand-made AVD still works the usual way if you want an interactive device — start it from
+Android Studio's Device Manager (or `$ANDROID_HOME/emulator/emulator -avd <name>`) and use
+`./gradlew :app:connectedDemoDebugAndroidTest`. That is the better choice for a manual walkthrough,
+where a Play-Store image is closer to production than an ATD image is.
+
+The Android SDK command-line tools are not on `PATH` by default on a fresh Android Studio install.
+If `adb` is not found:
+
+```bash
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+```
+
+Re-record screenshot goldens after an intentional UI change with
+`./gradlew :app:recordRoborazziDemoDebug`, then review the diffs under
+`app/src/test/screenshots/` like any other source change.
+
+minSdk 26, target/compile SDK 36, Kotlin `2.2`, no authentication or user accounts.
+
+## Limitations
+
+- The PaperReader server is still being built, so there are no real bibliographic search results,
+  verified access, or downloadable PDFs yet — see
+  [Placeholder behavior](#placeholder-behavior-read-this-first) and
+  [Live-backend status](#live-backend-status).
+- PDF availability is derived by the server from OpenAlex metadata, not verified against the actual
+  remote document. This is accepted debt (API-001), owned by the server; a `DIRECT_PDF` can
+  therefore still point at a dead link or a landing page. The client's own download validation
+  (`%PDF-` signature plus a successful response) is what catches that today.
+- Android's contract suite passing does not mean client and server agree — only provider CI
+  verifying the same pinned contract version shows that (SHR-001/SHR-002).
+- No accounts, cross-device sync, annotations, or citation management (explicitly out of scope —
+  see the proposal's Non-Goals).
+- Instrumented/Compose UI tests boot an emulator, so they are not part of
+  `:app:testDemoDebugUnitTest` and need a machine with hardware virtualization available.

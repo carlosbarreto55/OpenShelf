@@ -1,0 +1,47 @@
+{
+  "apiVersion": "v1",
+  "contractVersion": "1.0.0",
+  "pinnedAt": "2026-09-08",
+  "upstream": {
+    "producer": "PaperReaderApi",
+    "canonicalBundle": "not yet published \u2014 see docs/api-compatibility.md",
+    "provenance": "Authored in the PaperReader Android repository from the recorded business decisions in TECHNICAL_DEBT.md (decisions 2, 3 and 5) and the OpenSpec api-contract-compatibility capability. It is a consumer expectation of v1, NOT a provider-published schema.",
+    "verifiedByProviderCi": false
+  },
+  "notes": [
+    "Checksums are recorded so an unreviewed local fixture edit cannot silently redefine server behavior.",
+    "Regenerate with: python3 tools/update-contract-manifest.py app/src/test/resources/contract/v1",
+    "SHR-001 and SHR-002 stay open until provider CI verifies this same contractVersion."
+  ],
+  "resources": {
+    "errors/malformed-success.json": "sha256:3513191a6ae1c8ebee941bb148d3c96327d7a1c8a4e5440cef5b66c38398d01a",
+    "errors/not-found.json": "sha256:c6824b14a063ed77ef9c7d3f765d6b16e1ceb9902b1defab11dd6d68095b5615",
+    "errors/search-missing-required-fields.json": "sha256:f3931f2c5255a13c5813222f90ca3633cca8954044c3223d615aff2e7a567a84",
+    "errors/upstream-timeout.json": "sha256:1899186cc5ed2e907a61a0a1bfed1eb1d5256e43ec9fe696810e483cc335be26",
+    "errors/upstream-unavailable.json": "sha256:fe591f71ef64590c97ac528ab2427c82aa59232ee0e8570ef1f97bd8ebd059b8",
+    "requests/download-descriptor.json": "sha256:99d3d06d1a0713b97d9d194aceb9181144f60b84a72fcffda3c8720f3dce2960",
+    "requests/paper-detail.json": "sha256:99d64fb7f6ea0fc07d910c7055321ff88c26dcc5920092485f178042d63a74a4",
+    "requests/search-append-page.json": "sha256:2082d0c1bb152ec13cd626c7c2c98f6405b91e9a5ee9fd2feb114e2396b73a78",
+    "requests/search-default.json": "sha256:51599283ba3c6ef8da39d66f3e1838b8e3a476e03209da771b38c1685c6157ce",
+    "requests/search-open-access-only.json": "sha256:c8ccd5cb337b3834726b0b21e61f69cfcc6b7246c8ced0d434baec222154d085",
+    "requests/search-pdf-available-only.json": "sha256:da0589f099b0b7d84a90c929872cc33e1426eb9998f18453c8dbc62dba368687",
+    "requests/search-topic-free-text.json": "sha256:6f503ca24f7eed22402e918a5ac58c6bfe9d575c6fe71f889bace2fb6f519edb",
+    "requests/search-work-type-book-chapter.json": "sha256:9afa83e5cc86d46a102c3abb5ae82e8e5efd45e8eadefbdeb4bc4972929307b8",
+    "responses/detail-found.json": "sha256:d1e9fa60e9835c7c6d278bfafbb2c756b297638e51bc1d3e40f314916c10d813",
+    "responses/detail-mismatched-id.json": "sha256:1ceec374980d17f9eaca0fde407a6d057881d1fa8bf236744cf922e0300ab1f9",
+    "responses/detail-null-paper.json": "sha256:0069ab29e5baeec5e05e172dd423a0fa7ee8203f63368a6b4e016c1cbf4678fe",
+    "responses/download-available.json": "sha256:bf1ae224c54ab9402dafd18db043dcc0faa863614dbe176b03edf53a80467b82",
+    "responses/download-expired-descriptor.json": "sha256:c9401fa7c766f1cd337509e372699cc08d7ad9f45fe3797c5f29ff49e36421a8",
+    "responses/download-invalid-descriptor.json": "sha256:09bc6a6d24949010fa8ab3713ce462c289b1de76a6ba0d56820fcc3338ccb86e",
+    "responses/download-mismatched-id.json": "sha256:a24fd7f82d8729ca998f4ccfbbe1c227f7a9d91a47cb54d89376d3a341931dcd",
+    "responses/download-unavailable.json": "sha256:666dc4f725ec064beac2ecbfd9b5a5d4a672f8570b15357dccbff8fc5207213c",
+    "responses/search-access-states.json": "sha256:2b0c71b916d986ee6c6d3b6b6d4de8aaf9f90d63153f4725e205366c730c2ce1",
+    "responses/search-duplicate-ids.json": "sha256:9a5b319f4c2c3fbf1165cebe74b038e40995a200459dbfb00d80198ba026c8f0",
+    "responses/search-empty-page-with-cursor.json": "sha256:007d524758c53f0baf764595519cad891546d5d5de536cd74a355ee3231e950e",
+    "responses/search-empty-terminal.json": "sha256:c3c9f6b8600f297c43bd3cd8aa8f305a9c301d4536a3811ff57e58e2b2c1b6c2",
+    "responses/search-normal.json": "sha256:179563b52da7c8137190df6af09e2dbd4da755e46f9361dd02b82dab0c9fdde2",
+    "responses/search-total-absent.json": "sha256:6492ad4b81755d7de4afd737ec0775f6b7c6b41ac12d5e898a873852b264e89b",
+    "responses/search-unknown-fields.json": "sha256:6865fe3b247aa7f16e7ea25663b9b1f6a54cabe997533e59375380232afa61ba",
+    "responses/search-work-types.json": "sha256:3d599f8a444585035e7109a0998d0af51a9b0908539fafba424c56a62a1fe22d"
+  }
+}

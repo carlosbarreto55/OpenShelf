@@ -1,0 +1,8 @@
+{
+  "name": "paper-detail",
+  "description": "Detail is addressed by the stable paper ID in the path, with no query parameters.",
+  "method": "GET",
+  "path": "/v1/papers/W2001",
+  "query": {},
+  "absent_query_parameters": ["query", "cursor", "sort"]
+}

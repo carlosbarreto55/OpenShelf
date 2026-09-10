@@ -1,6 +1,5 @@
 package com.example.paperReader.data.remote
 
-import com.example.paperReader.data.remote.dto.AccessRefreshResponseDto
 import com.example.paperReader.data.remote.dto.DownloadDescriptorResponseDto
 import com.example.paperReader.data.remote.dto.PaperDetailResponseDto
 import com.example.paperReader.data.remote.dto.PaperSearchRequestDto
@@ -38,10 +37,6 @@ class HttpPaperRemoteDataSource @Inject constructor(
         return execute { api.getPaper(paperId.value) }
     }
 
-    override suspend fun refreshAccess(paperId: PaperId): RepositoryResult<AccessRefreshResponseDto> {
-        return execute { api.refreshAccess(paperId.value) }
-    }
-
     override suspend fun getDownloadDescriptor(paperId: PaperId): RepositoryResult<DownloadDescriptorResponseDto> {
         return execute { api.getDownloadDescriptor(paperId.value) }
     }
@@ -52,7 +47,8 @@ class HttpPaperRemoteDataSource @Inject constructor(
         } catch (_: SocketTimeoutException) {
             RepositoryResult.Failure(RepositoryError.Timeout)
         } catch (error: HttpException) {
-            RepositoryResult.Failure(RepositoryError.Http(error.code()))
+            // The response body is never read: an upstream error document must not reach UI state.
+            RepositoryResult.Failure(error.code().toRepositoryError())
         } catch (_: SerializationException) {
             RepositoryResult.Failure(
                 RepositoryError.Contract(RepositoryError.ContractFailure.INVALID_RESPONSE),
@@ -66,5 +62,20 @@ class HttpPaperRemoteDataSource @Inject constructor(
         } catch (_: Throwable) {
             RepositoryResult.Failure(RepositoryError.Unexpected)
         }
+    }
+
+    /** The status policy recorded as business decision 3 in TECHNICAL_DEBT.md. Any other status
+     * keeps its code without exposing what the server said about it. */
+    private fun Int.toRepositoryError(): RepositoryError = when (this) {
+        HTTP_NOT_FOUND -> RepositoryError.NotFound
+        HTTP_BAD_GATEWAY -> RepositoryError.ServiceUnavailable
+        HTTP_GATEWAY_TIMEOUT -> RepositoryError.Timeout
+        else -> RepositoryError.Http(this)
+    }
+
+    private companion object {
+        const val HTTP_NOT_FOUND = 404
+        const val HTTP_BAD_GATEWAY = 502
+        const val HTTP_GATEWAY_TIMEOUT = 504
     }
 }

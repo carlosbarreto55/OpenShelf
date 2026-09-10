@@ -19,6 +19,9 @@ sealed interface PaperReaderRoute {
 
     @Serializable
     data object Downloads : PaperReaderRoute
+
+    @Serializable
+    data class PaperDetail(val paperId: String) : PaperReaderRoute
 }
 
 data class TopLevelDestination(

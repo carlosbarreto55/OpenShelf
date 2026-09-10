@@ -35,8 +35,8 @@ import com.example.paperReader.ui.theme.spacing
 
 @Composable
 fun LoadingState(
-    message: String = "Loading",
     modifier: Modifier = Modifier,
+    message: String = "Loading",
 ) {
     Column(
         modifier = modifier
@@ -160,6 +160,37 @@ fun StaleDataNotice(
                 )
                 Text("Refresh")
             }
+        }
+    }
+}
+
+@Composable
+fun DemoDataNotice(
+    modifier: Modifier = Modifier,
+    message: String = "Demo data — no live backend connected yet.",
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = MaterialTheme.spacing.compact, vertical = MaterialTheme.spacing.control),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.control),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
         }
     }
 }

@@ -1,0 +1,14 @@
+{
+  "items": [
+    { "id": "W2101", "title": "Canonical book chapter", "type": "book_chapter" },
+    { "id": "W2102", "title": "Legacy alias book chapter", "type": "book-chapter" },
+    { "id": "W2103", "title": "Upper case alias book chapter", "type": "BOOK-CHAPTER" },
+    { "id": "W2104", "title": "Canonical dataset", "type": "dataset" },
+    { "id": "W2105", "title": "Legacy journal article", "type": "journal_article" },
+    { "id": "W2106", "title": "Unrecognized future type", "type": "monograph" },
+    { "id": "W2107", "title": "Blank type", "type": "" },
+    { "id": "W2108", "title": "Absent type" }
+  ],
+  "next_cursor": null,
+  "total_count": 8
+}

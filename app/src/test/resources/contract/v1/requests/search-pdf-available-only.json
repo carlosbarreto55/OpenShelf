@@ -1,0 +1,8 @@
+{
+  "name": "search-pdf-available-only",
+  "description": "The PDF restriction is independent of the open-access restriction.",
+  "method": "GET",
+  "path": "/v1/papers/search",
+  "query": { "query": "machine learning", "sort": "relevance", "pdf_available": "true" },
+  "absent_query_parameters": ["cursor", "open_access", "publication_year", "work_type", "topic"]
+}

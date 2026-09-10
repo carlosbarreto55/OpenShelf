@@ -39,26 +39,46 @@ data class Topic(
     val score: Double? = null,
 )
 
-enum class PaperType {
-    ARTICLE,
-    REVIEW,
-    PREPRINT,
-    BOOK_CHAPTER,
-    DATASET,
-    OTHER,
-    UNKNOWN;
+/**
+ * [wireValue] is the one canonical value this client ever *emits*. Parsing is deliberately more
+ * tolerant than emission: a server mid-rollout can still send a documented legacy alias, and a
+ * value we do not recognize must not lose the paper (see TECHNICAL_DEBT.md AND-008 / API-006).
+ */
+enum class PaperType(val wireValue: String?) {
+    ARTICLE("article"),
+    REVIEW("review"),
+    PREPRINT("preprint"),
+    BOOK_CHAPTER("book_chapter"),
+    DATASET("dataset"),
+
+    /** A recognized response that is not one of the supported filter values. Never emitted. */
+    OTHER(null),
+
+    /** No type was supplied at all. Never emitted. */
+    UNKNOWN(null),
+    ;
 
     companion object {
+        /** The finite set the public contract publishes, and therefore the only values a filter
+         * control may offer. */
+        val SUPPORTED_FILTER_TYPES = listOf(ARTICLE, REVIEW, PREPRINT, BOOK_CHAPTER, DATASET)
+
+        /** Documented legacy spellings accepted on input only. `book-chapter` is raw OpenAlex
+         * output that an un-migrated server can still emit; `journal_article` predates the
+         * canonical `article`. */
+        private val LEGACY_ALIASES = mapOf(
+            "book_chapter" to BOOK_CHAPTER,
+            "journal_article" to ARTICLE,
+        )
+
         fun fromWireValue(value: String?): PaperType {
-            return when (value?.trim()?.uppercase(Locale.US)) {
-                "ARTICLE", "JOURNAL_ARTICLE" -> ARTICLE
-                "REVIEW" -> REVIEW
-                "PREPRINT" -> PREPRINT
-                "BOOK_CHAPTER" -> BOOK_CHAPTER
-                "DATASET" -> DATASET
-                "", null -> UNKNOWN
-                else -> OTHER
-            }
+            // Hyphen and underscore are the same separator for parsing purposes, so `book-chapter`,
+            // `BOOK_CHAPTER` and `Book-Chapter` all resolve; emission stays canonical either way.
+            val normalized = value?.trim()?.lowercase(Locale.US)?.replace('-', '_').orEmpty()
+            if (normalized.isEmpty()) return UNKNOWN
+            return SUPPORTED_FILTER_TYPES.firstOrNull { it.wireValue == normalized }
+                ?: LEGACY_ALIASES[normalized]
+                ?: OTHER
         }
     }
 }
@@ -88,9 +108,14 @@ data class PaperSearchRequest(
     val cursor: String? = null,
 )
 
+/**
+ * [totalItems] is the matched total the data source supplied, or null when it supplied none. It is
+ * never derived from [items], page size, or page count — see TECHNICAL_DEBT.md AND-007.
+ */
 data class CursorPage<T>(
     val items: List<T>,
     val nextCursor: String? = null,
+    val totalItems: Int? = null,
 )
 
 enum class SavedState {
@@ -105,6 +130,17 @@ data class ConfirmedPdfDescriptor(
     val generated: Boolean = false,
     val expiresAtEpochMillis: Long? = null,
 )
+
+/**
+ * The download endpoint's answer for one paper. [Unavailable] is the normal "this paper exists but
+ * currently has no confirmed PDF" case (HTTP 200 with a null descriptor) and must never be
+ * confused with a malformed body or a missing paper — see TECHNICAL_DEBT.md AND-006.
+ */
+sealed interface DownloadAvailability {
+    data class Available(val descriptor: ConfirmedPdfDescriptor) : DownloadAvailability
+
+    data object Unavailable : DownloadAvailability
+}
 
 sealed interface AccessResolution {
     data class DirectPdf(val descriptor: ConfirmedPdfDescriptor) : AccessResolution
@@ -159,6 +195,10 @@ data class DownloadRecord(
     val state: DownloadState,
     val progress: DownloadProgress? = null,
     val localContentUri: String? = null,
+    /** The completed file's actual MIME type (set when [state] becomes [DownloadState.COMPLETED]),
+     * not necessarily the confirmed descriptor's declared type — the placeholder implementation's
+     * "completed" file is a disclaimer text file, never a PDF. Meaningless before completion. */
+    val mimeType: String? = null,
     val errorMessage: String? = null,
     val updatedAtEpochMillis: Long,
 )

@@ -1,0 +1,9 @@
+{
+  "items": [
+    { "id": "W2001", "title": "Attention mechanisms for scientific retrieval" },
+    { "id": "W2201", "title": "A newly seen paper" },
+    { "id": "W2001", "title": "Attention mechanisms for scientific retrieval" }
+  ],
+  "next_cursor": null,
+  "total_count": 2
+}

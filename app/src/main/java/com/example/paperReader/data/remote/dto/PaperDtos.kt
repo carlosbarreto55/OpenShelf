@@ -11,10 +11,15 @@ data class PaperSearchRequestDto(
     val filters: SearchFiltersDto = SearchFiltersDto(),
 )
 
+/**
+ * Null means "no restriction", which is also what an omitted parameter means. Sending an explicit
+ * `false` is not the same thing to every server version (TECHNICAL_DEBT.md API-002), so an inactive
+ * restriction is simply absent here and absent on the wire.
+ */
 @Serializable
 data class SearchFiltersDto(
-    @SerialName("open_access") val openAccessOnly: Boolean = false,
-    @SerialName("pdf_available") val pdfAvailableOnly: Boolean = false,
+    @SerialName("open_access") val openAccessOnly: Boolean? = null,
+    @SerialName("pdf_available") val pdfAvailableOnly: Boolean? = null,
     @SerialName("publication_year") val publicationYear: Int? = null,
     @SerialName("work_type") val workType: String? = null,
     val topic: String? = null,
@@ -23,12 +28,6 @@ data class SearchFiltersDto(
 @Serializable
 data class PaperDetailsRequestDto(
     @SerialName("paper_id") val paperId: String,
-)
-
-@Serializable
-data class AccessRefreshRequestDto(
-    @SerialName("paper_id") val paperId: String,
-    val force: Boolean = true,
 )
 
 @Serializable
@@ -46,12 +45,6 @@ data class PaperSearchResponseDto(
 @Serializable
 data class PaperDetailResponseDto(
     val paper: PaperDto? = null,
-)
-
-@Serializable
-data class AccessRefreshResponseDto(
-    @SerialName("paper_id") val paperId: String? = null,
-    val access: AccessResolutionDto? = null,
 )
 
 @Serializable

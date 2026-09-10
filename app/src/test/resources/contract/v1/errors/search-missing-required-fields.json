@@ -1,0 +1,10 @@
+{
+  "items": [
+    { "id": null, "title": "Paper with no stable identity" },
+    { "id": "not-a-work-id", "title": "Paper with an unusable identity" },
+    { "id": "W2401", "title": "   " },
+    { "id": "W2402", "title": null }
+  ],
+  "next_cursor": null,
+  "total_count": 4
+}

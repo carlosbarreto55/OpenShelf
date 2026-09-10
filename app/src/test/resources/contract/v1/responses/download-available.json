@@ -1,0 +1,10 @@
+{
+  "paper_id": "W2001",
+  "descriptor": {
+    "url": "https://cdn.example.org/W2001-fresh.pdf",
+    "mime_type": "application/pdf",
+    "provenance": "publisher",
+    "generated": false,
+    "expires_at_epoch_millis": 4102444800000
+  }
+}

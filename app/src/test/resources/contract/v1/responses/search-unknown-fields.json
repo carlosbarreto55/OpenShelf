@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "id": "W2004",
+      "title": "Additive fields are ignored safely",
+      "year": 2024,
+      "type": "article",
+      "language": "en",
+      "retraction_notice": null,
+      "access": {
+        "state": "PAYWALLED",
+        "license_family": "closed"
+      }
+    }
+  ],
+  "next_cursor": null,
+  "total_count": 1,
+  "facets": { "year": { "2024": 1 } }
+}

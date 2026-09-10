@@ -5,14 +5,15 @@ import com.example.paperReader.data.remote.dto.ConfirmedPdfDownloadDescriptorDto
 import com.example.paperReader.data.remote.dto.PaperDetailResponseDto
 import com.example.paperReader.data.remote.dto.PaperDto
 import com.example.paperReader.data.remote.dto.PaperSearchResponseDto
-import com.example.paperReader.data.remote.dto.AccessRefreshResponseDto
 import com.example.paperReader.data.remote.dto.DownloadDescriptorResponseDto
 import com.example.paperReader.domain.model.AccessResolution
 import com.example.paperReader.domain.model.Author
 import com.example.paperReader.domain.model.ConfirmedPdfDescriptor
 import com.example.paperReader.domain.model.CursorPage
+import com.example.paperReader.domain.model.DownloadAvailability
 import com.example.paperReader.domain.model.Paper
 import com.example.paperReader.domain.model.PaperId
+import com.example.paperReader.domain.model.PublicationYear
 import com.example.paperReader.domain.model.Topic
 import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.domain.repository.RepositoryResult
@@ -41,7 +42,7 @@ object PaperMappers {
                 title = title,
                 authors = dto.authors.mapNotNull { it.toDomain() },
                 venue = dto.venue.cleanOptional(),
-                publicationYear = dto.year?.takeIf { it in 1500..2100 },
+                publicationYear = dto.year?.takeIf { it in PublicationYear.SUPPORTED_RANGE },
                 type = com.example.paperReader.domain.model.PaperType.fromWireValue(dto.type),
                 topics = dto.topics.mapNotNull { it.toDomain() },
                 citationCount = dto.citationCount?.takeIf { it >= 0 },
@@ -67,38 +68,69 @@ object PaperMappers {
             CursorPage(
                 items = papers,
                 nextCursor = dto.nextCursor.cleanOptional(),
+                // Carried through exactly as supplied. A negative total is not a total; absence
+                // stays absence. Nothing here is ever derived from `papers.size`.
+                totalItems = dto.totalCount?.takeIf { it >= 0 },
             ),
         )
     }
 
-    fun mapDetailResponse(dto: PaperDetailResponseDto): RepositoryResult<Paper> {
-        return dto.paper?.let(::mapPaper)
-            ?: RepositoryResult.Failure(
+    /**
+     * A 200 response that carries no usable paper is malformed data, never "not found" — the
+     * backend signals a missing paper with HTTP 404 (business decision 3). [expectedPaperId] is
+     * checked so a response about a different work cannot be shown as the requested one.
+     */
+    fun mapDetailResponse(
+        dto: PaperDetailResponseDto,
+        expectedPaperId: PaperId,
+    ): RepositoryResult<Paper> {
+        val paper = dto.paper
+            ?: return RepositoryResult.Failure(
                 RepositoryError.Contract(RepositoryError.ContractFailure.INVALID_RESPONSE),
             )
+        return when (val mapped = mapPaper(paper)) {
+            is RepositoryResult.Failure -> mapped
+            is RepositoryResult.Success -> if (mapped.value.id == expectedPaperId) {
+                mapped
+            } else {
+                RepositoryResult.Failure(
+                    RepositoryError.Contract(RepositoryError.ContractFailure.INVALID_PAPER_ID),
+                )
+            }
+        }
     }
 
-    fun mapAccessRefreshResponse(
-        dto: AccessRefreshResponseDto,
-        expectedPaperId: PaperId,
-    ): RepositoryResult<AccessResolution> {
-        return validateResponsePaperId(dto.paperId, expectedPaperId)?.let { failure ->
-            RepositoryResult.Failure(failure)
-        } ?: mapAccessResolution(dto.access)
-    }
-
-    fun mapDownloadDescriptorResponse(
+    /**
+     * The four outcomes the download endpoint can produce on a 200 response, kept distinct:
+     * a valid descriptor, the normal no-PDF case, a response about the wrong paper, and a
+     * descriptor that fails validation (malformed URL, or expired against [nowEpochMillis]).
+     * HTTP 404 never reaches here — it is already [RepositoryError.NotFound].
+     */
+    fun mapDownloadAvailability(
         dto: DownloadDescriptorResponseDto,
         expectedPaperId: PaperId,
-    ): RepositoryResult<ConfirmedPdfDescriptor> {
+        nowEpochMillis: Long,
+    ): RepositoryResult<DownloadAvailability> {
         val paperIdFailure = validateResponsePaperId(dto.paperId, expectedPaperId)
         if (paperIdFailure != null) {
             return RepositoryResult.Failure(paperIdFailure)
         }
-        return dto.descriptor?.let(::mapPdfDescriptor)
-            ?: RepositoryResult.Failure(
-                RepositoryError.AccessValidation(RepositoryError.AccessFailure.INVALID_DESCRIPTOR),
-            )
+        val descriptorDto = dto.descriptor
+            ?: return RepositoryResult.Success(DownloadAvailability.Unavailable)
+
+        return when (val mapped = mapPdfDescriptor(descriptorDto)) {
+            is RepositoryResult.Failure -> mapped
+            is RepositoryResult.Success -> {
+                val expiresAt = mapped.value.expiresAtEpochMillis
+                if (expiresAt != null && expiresAt <= nowEpochMillis) {
+                    RepositoryResult.Failure(
+                        RepositoryError.AccessValidation(RepositoryError.AccessFailure.EXPIRED_DESCRIPTOR),
+                    )
+                } else {
+                    RepositoryResult.Success(DownloadAvailability.Available(mapped.value))
+                }
+            }
+        }
     }
 
     fun mapAccessResolution(dto: AccessResolutionDto?): RepositoryResult<AccessResolution> {

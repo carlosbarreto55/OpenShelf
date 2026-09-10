@@ -1,0 +1,8 @@
+{
+  "name": "download-descriptor",
+  "description": "Transfer-time confirmation reads the descriptor sub-resource of the stable paper ID.",
+  "method": "GET",
+  "path": "/v1/papers/W2001/download",
+  "query": {},
+  "absent_query_parameters": ["query", "cursor", "sort"]
+}

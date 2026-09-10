@@ -1,6 +1,7 @@
 package com.example.paperReader.di
 
 import com.example.paperReader.core.config.BackendConfiguration
+import com.example.paperReader.core.config.BackendMode
 import com.example.paperReader.data.remote.FakePaperRemoteDataSource
 import com.example.paperReader.data.remote.HttpPaperRemoteDataSource
 import com.example.paperReader.data.remote.PaperReaderApi
@@ -25,14 +26,13 @@ object BackendModule {
         return BackendConfiguration.fromBuildConfig()
     }
 
+    /** Only ever requested in an HTTP build: [providePaperRemoteDataSource] resolves the fake
+     * source without touching this provider, so there is no placeholder base URL to fall back to. */
     @Provides
     @Singleton
     fun providePaperReaderApi(configuration: BackendConfiguration): PaperReaderApi {
-        val baseUrl = configuration.baseUrl
-            ?.ensureTrailingSlash()
-            ?: "https://paperreader.invalid/"
         return Retrofit.Builder()
-            .baseUrl(baseUrl)
+            .baseUrl(configuration.requireBaseUrl())
             .addConverterFactory(RemoteJson.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(PaperReaderApi::class.java)
@@ -45,10 +45,9 @@ object BackendModule {
         fakeProvider: Provider<FakePaperRemoteDataSource>,
         httpProvider: Provider<HttpPaperRemoteDataSource>,
     ): PaperRemoteDataSource {
-        return if (configuration.shouldUseHttp) httpProvider.get() else fakeProvider.get()
-    }
-
-    private fun String.ensureTrailingSlash(): String {
-        return if (endsWith('/')) this else "$this/"
+        return when (configuration.mode) {
+            BackendMode.HTTP -> httpProvider.get()
+            BackendMode.FAKE -> fakeProvider.get()
+        }
     }
 }
