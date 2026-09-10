@@ -64,18 +64,23 @@ class HttpPaperRemoteDataSource @Inject constructor(
         }
     }
 
-    /** The status policy recorded as business decision 3 in TECHNICAL_DEBT.md. Any other status
-     * keeps its code without exposing what the server said about it. */
+    /** The status policy recorded as business decision 3 in TECHNICAL_DEBT.md, extended to the two
+     * further statuses the canonical `paperreader-v1.0.0` contract declares. Any other status keeps
+     * its code without exposing what the server said about it. */
     private fun Int.toRepositoryError(): RepositoryError = when (this) {
+        HTTP_BAD_REQUEST -> RepositoryError.InvalidRequest
         HTTP_NOT_FOUND -> RepositoryError.NotFound
         HTTP_BAD_GATEWAY -> RepositoryError.ServiceUnavailable
+        HTTP_SERVICE_UNAVAILABLE -> RepositoryError.ServiceUnavailable
         HTTP_GATEWAY_TIMEOUT -> RepositoryError.Timeout
         else -> RepositoryError.Http(this)
     }
 
     private companion object {
+        const val HTTP_BAD_REQUEST = 400
         const val HTTP_NOT_FOUND = 404
         const val HTTP_BAD_GATEWAY = 502
+        const val HTTP_SERVICE_UNAVAILABLE = 503
         const val HTTP_GATEWAY_TIMEOUT = 504
     }
 }

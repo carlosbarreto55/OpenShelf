@@ -335,21 +335,27 @@ These decisions are final unless explicitly revisited:
 ### AND-005 — Not-found is not a first-class domain outcome
 
 - **Priority:** P1
-- **Status:** Blocked by shared rollout — Android side complete
+- **Status:** Resolved (2026-09-09)
 - **Owner:** Android
 - **Current behavior:** `RepositoryError` has first-class `NotFound` (non-recoverable),
-  `ServiceUnavailable` (recoverable) and `NoDownloadableContent` outcomes. `HttpPaperRemoteDataSource`
-  maps 404 → `NotFound`, 502 → `ServiceUnavailable`, 504 → `Timeout`, and keeps every other status
+  `ServiceUnavailable` (recoverable), `InvalidRequest` (non-recoverable) and `NoDownloadableContent`
+  outcomes. `HttpPaperRemoteDataSource` maps 400 → `InvalidRequest`, 404 → `NotFound`,
+  502 and 503 → `ServiceUnavailable`, 504 → `Timeout`, and keeps every other status
   without reading its response body. A `200` that cannot be mapped stays a `Contract` failure, and a
   detail or descriptor response about a different paper is a distinct contract failure. Paper detail
   renders a stable, terminal `PaperDetailContent.NotFound` that suppresses any cached copy and its
   access actions.
 - **Evidence:** `HttpPaperRemoteDataSourceTest` (real HTTP statuses), `PaperOutcomeMapperTest`,
   `PaperRepositoryImplTest`, `PaperDetailViewModelTest`, `RemoteModeParityTest`.
-- **Blocker:** the server must actually return these statuses (API-004). Until then the mapping is
-  exercised only against the pinned contract fixtures.
-- **Exit criteria:** Details, refresh, and download flows can present a stable not-found outcome;
-  502/504 remain recoverable service failures; malformed success bodies remain contract failures.
+- **Resolution:** the blocker was that the server had to actually return these statuses (API-004).
+  It now does. `RealBackendSmokeTest` verifies against a running server that a syntactically valid
+  unknown ID is `404 → NotFound` and that an existing paper with no free PDF is
+  `200 + descriptor:null → DownloadAvailability.Unavailable`, not an error. `CanonicalContractTest`
+  drives the provider's own published 400/404/502/503/504 Problem Details through the production
+  status policy. The mapping is no longer exercised only against consumer-authored fixtures.
+- **Exit criteria:** Details and download flows can present a stable not-found outcome;
+  502/503/504 remain recoverable service failures; malformed success bodies remain contract failures.
+  **Met.** API-004 itself remains the provider's item to close in its own register.
 
 ### AND-006 — Downloads do not re-confirm the descriptor with the server
 
@@ -488,31 +494,52 @@ These decisions are final unless explicitly revisited:
 ### SHR-001 — No cross-repository contract tests
 
 - **Priority:** P0
-- **Status:** Open
+- **Status:** Resolved (2026-09-09)
 - **Owner:** Server and Android
-- **Current evidence:** The API suite passes 70 tests and the Android JVM suite has 119 passing
-  tests, but each tests its own assumptions. Android's HTTP tests use an in-process fake
-  `PaperReaderApi`; API integration tests assert only server-authored shapes.
-- **Impact:** Both builds remain green while request semantics and business outcomes disagree.
-- **Planned resolution:** Run canonical request/response/error fixtures through Spring
-  serialization and Android deserialization/mapping. Include semantic assertions, not only JSON
-  field presence.
+- **Original evidence:** The API suite passed 70 tests and the Android JVM suite 119, but each
+  tested its own assumptions. Android's HTTP tests used an in-process fake `PaperReaderApi`; API
+  integration tests asserted only server-authored shapes. Both builds could stay green while
+  request semantics and business outcomes disagreed.
+- **Resolution:** One bundle, `paperreader-v1.0.0`, is now driven through both production stacks.
+  The provider drives `contracts/v1/fixtures/canonical-fixtures.json` through Spring in
+  `CanonicalProviderContractTest` and validates its own OpenAPI document and digests in
+  `ContractAssetsTest`. Android vendors that bundle byte-exactly at
+  `app/src/test/resources/contract/canonical`, re-hashes every file against the provider's published
+  `SHA256SUMS`, and drives all twelve fixtures through the production Retrofit interface,
+  `RemoteJson` converter, status policy, and mappers in `CanonicalContractTest` — asserting domain
+  outcomes, not JSON field presence. Every published fixture must be consumed or explicitly waived,
+  so a new canonical case cannot be silently ignored.
+- **Evidence (2026-09-09):** provider `./mvnw test` — 126 tests, 0 failures, including
+  `CanonicalProviderContractTest` (5) and `ContractAssetsTest` (4). Android
+  `./gradlew :app:verifyBothFlavors` — 529 JVM tests, 0 failures, including `CanonicalContractTest`
+  (14). `./gradlew :app:atdIntegrationDebugAndroidTest` — 32 instrumentation tests, 0 failures,
+  0 skipped, including seven against a real server.
 - **Exit criteria:** CI fails when either side changes a path, query meaning, canonical enum value,
   nullability rule, error status, pagination invariant, or access-state requirement incompatibly.
+  **Met** for the pinned version. A *new* provider release still has to be re-vendored deliberately;
+  the digest check fails on a mismatched copy but nothing yet notifies Android that a release
+  happened. That notification path is release-engineering work tracked under SHR-003.
 
 ### SHR-002 — The contract has multiple competing sources of truth
 
 - **Priority:** P1
-- **Status:** Open
+- **Status:** Resolved (2026-09-09)
 - **Owner:** Server and Android
-- **Current behavior:** Retrofit DTOs, Android documentation, Android OpenSpec artifacts, server
-  documentation, server OpenSpec artifacts, and implementation tests each describe parts of the
-  contract. They currently disagree on PDF confirmation, topic semantics, and error handling.
-- **Planned resolution:** Establish one versioned canonical contract, preferably OpenAPI plus
-  written semantic rules that schemas cannot express. Repository documents and tests should link
-  to or derive from it rather than restating divergent copies.
+- **Original behavior:** Retrofit DTOs, Android documentation, Android OpenSpec artifacts, server
+  documentation, server OpenSpec artifacts, and implementation tests each described parts of the
+  contract. They disagreed on PDF confirmation, topic semantics, and error handling.
+- **Resolution:** `paperreader-v1.0.0` is the single authoritative definition: an OpenAPI 3.1
+  document for the wire shapes plus `semantics.md` for the behavior JSON Schema cannot express
+  (filter meaning, candidate precedence, access normalization, totals truthfulness, failure policy).
+  It is vendored unmodified at `app/src/test/resources/contract/canonical`. The Android
+  `contract/v1` bundle is demoted from a competing schema to what it now declares itself to be —
+  the consumer-side edge cases the canonical fixtures do not enumerate (expired and malformed
+  descriptors, mismatched identity, duplicate IDs, empty pages that still carry a cursor, unknown
+  response fields) — and its error bodies were replaced with the canonical RFC 7807 Problem Details
+  so the two can no longer disagree about error handling. `manifest.json` records the derivation.
 - **Exit criteria:** Every operation, field, enum, error response, and semantic invariant has one
-  authoritative definition and an explicit compatibility/versioning policy.
+  authoritative definition and an explicit compatibility/versioning policy. **Met** — definition in
+  the canonical bundle, policy in `docs/api-compatibility.md`.
 
 ### SHR-003 — Coordinated deployment/versioning policy is undefined
 
@@ -570,9 +597,40 @@ Unless the product direction changes, the following are intentional:
   scans over sources and packaged artifacts.
 - `./gradlew :app:assembleIntegrationRelease :app:verifyIntegrationReleaseNetworkPolicy` — successful:
   Internet permission present, no cleartext exception in the merged manifest or packaged resources.
-- **Not run:** the provider suite against the same canonical contract version — the PaperReaderApi
-  repository was not available from this environment. SHR-001, SHR-002 and SHR-003 remain open and
-  live release remains gated.
+- **Superseded:** this run recorded the provider suite as *not run*, because the PaperReaderApi
+  repository was not available from this environment. See the 2026-09-09 (live integration) entry
+  below, where it was.
+
+### 2026-09-09 (live integration and provider-backed contract closure)
+
+The first run in which the Android client and a real PaperReader server spoke to each other, and the
+first in which both repositories verified the *same* contract version.
+
+- **Provider:** `./mvnw test` — **126 tests, 0 failures**, including `CanonicalProviderContractTest`
+  (5) and `ContractAssetsTest` (4), driving `paperreader-v1.0.0` through Spring.
+- **Android JVM:** `./gradlew :app:verifyBothFlavors -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080`
+  — **529 tests, 0 failures**, both flavors assembled, lint clean for each, both OpenAlex secret
+  scans clean. Includes `CanonicalContractTest` (14), which re-hashes the vendored provider bundle
+  against its published `SHA256SUMS` and drives all twelve published fixtures through the production
+  Retrofit stack.
+- **Android instrumentation:** `./gradlew :app:atdIntegrationDebugAndroidTest` — **32 tests, 0
+  failures, 0 skipped** on a build-managed Pixel 6 / API 33 `aosp-atd` (arm64) device. Seven of them
+  are `RealBackendSmokeTest`, which opened a socket to a real server at `10.0.2.2:8080` and verified
+  search, cursor advancement without overlap, detail identity, `DIRECT_PDF` descriptor confirmation
+  over HTTPS, the `200 + descriptor:null` no-PDF outcome, `404 → NotFound`, and a `pdf_available`
+  scan. None skipped, so the backend was genuinely reached.
+- **Provider gate command:** `./gradlew :app:testIntegrationDebugUnitTest --tests
+  com.example.paperReader.contract.ContractBundleIntegrityTest` — **passes**. The provider's
+  `CONSUMER-GATE.md` recorded this as *blocked, fails while compiling existing Android tests* on
+  2026-09-09; that record is stale and should be updated on the provider side.
+- **Closed by this run:** AND-005 (the server now returns the statuses the mapping was written
+  against), SHR-001, SHR-002.
+- **Still open:** SHR-003 (release management owns the deprecation window and the re-vendor
+  notification path), and every `API-*` item, which are the provider's to close in its own register.
+- **Observed risk, not fixed:** the `pdf_available=true` live case took **5.2s**. The server bounds
+  that scan at 8s and Retrofit is left on its default **10s** read timeout, because
+  `BackendModule.providePaperReaderApi()` never calls `.client(...)`. The margin is thin by
+  construction and will close under load.
 
 Green local suites do not close any item in this register unless that item's exit criteria and
 cross-contract behavior are explicitly covered.

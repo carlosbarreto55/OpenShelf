@@ -4,7 +4,6 @@ import java.io.File
 import java.nio.file.Files
 import kotlin.io.path.extension
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -58,13 +57,21 @@ class ContractBundleIntegrityTest {
     }
 
     @Test
-    fun sharedContractDebtStaysOpenUntilTheProviderVerifiesTheSameBundle() {
-        // SHR-001/SHR-002 cannot be closed from this repository alone. This assertion is the
-        // reminder: flipping the flag requires provider CI to consume the same contractVersion.
-        assertFalse(
-            "verifiedByProviderCi may only become true once PaperReaderApi's CI verifies contract " +
-                "version ${ContractBundle.manifest.contractVersion}.",
+    fun providerVerificationIsClaimedOnlyWithTheProviderBundleBehindIt() {
+        // This assertion used to run the other way: SHR-001/SHR-002 could not be closed from this
+        // repository alone, so `verifiedByProviderCi` was pinned to false. The provider has since
+        // published paperreader-v1.0.0, and it is vendored under contract/canonical with its own
+        // SHA256SUMS. The flag may now be true — but only while that bundle is actually present and
+        // pins the same version, so the claim can never outlive its evidence.
+        assertTrue(
+            "verifiedByProviderCi requires the provider bundle vendored at " +
+                "${CanonicalBundle.DIR}. Do not flip this flag without re-vendoring it.",
             ContractBundle.manifest.upstream.verifiedByProviderCi,
+        )
+        assertEquals(
+            "The consumer bundle must declare the same contract version the provider published.",
+            CanonicalBundle.version,
+            ContractBundle.manifest.contractVersion,
         )
     }
 

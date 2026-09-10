@@ -8,17 +8,27 @@ and what it needs from the server side before shared contract debt can be closed
 
 | | |
 |---|---|
-| Location | `app/src/test/resources/contract/v1/` |
+| Canonical bundle | `app/src/test/resources/contract/canonical/` — the provider's own files, vendored byte-exactly |
+| Consumer bundle | `app/src/test/resources/contract/v1/` |
 | Manifest | `contract/v1/manifest.json` — API version, contract version, provenance, SHA-256 per file |
-| Current contract version | `1.0.0` |
-| Verified by provider CI | **no** — see "Open gates" |
-| Drift gate | `ContractBundleIntegrityTest` |
+| Current contract version | `paperreader-v1.0.0` |
+| Verified by provider CI | **yes** — `CanonicalProviderContractTest` drives the same bundle through Spring |
+| Drift gates | `ContractBundleIntegrityTest` (consumer bundle), `CanonicalContractTest` (provider digests) |
 | Full gate | `./gradlew :app:verifyApiContract` |
 
-The bundle is a **consumer expectation** of v1, authored in this repository from the recorded
-business decisions in `TECHNICAL_DEBT.md`. It is not a provider-published schema, and the manifest
-says so. When the server team publishes a canonical bundle, this one is replaced by it and
-`upstream.canonicalBundle` / `upstream.verifiedByProviderCi` are updated in the same review.
+There are two bundles, and the distinction matters.
+
+**`contract/canonical/` is authoritative.** It is a byte-exact copy of `PaperReaderApi/contracts/v1`
+— OpenAPI 3.1 for the wire shapes, `semantics.md` for the behavior JSON Schema cannot express, the
+canonical fixtures, `VERSION`, and the provider's own `SHA256SUMS`. Never hand-edit it. To take a new
+provider release, re-vendor the whole directory and let `CanonicalContractTest` re-verify the
+digests.
+
+**`contract/v1/` is this repository's consumer expectation**, and now derives from the canonical
+bundle rather than competing with it. It exists for the edge cases the twelve canonical fixtures do
+not enumerate — expired and malformed descriptors, mismatched response identity, duplicate IDs,
+empty pages that still carry a cursor, unknown response fields. Its error bodies are the canonical
+RFC 7807 Problem Details, so the two cannot disagree about error handling.
 
 Editing a fixture without updating its checksum fails the build. Regenerate deliberately, as part
 of a reviewed contract-version change:
@@ -68,9 +78,11 @@ server rollout (API-004) is what remains.
 | `200`, `paper_id` matches, `descriptor: null` | "no PDF right now" — not malformed | no |
 | `200` body that cannot be mapped | contract failure — **never** not-found | no |
 | `200` about a different `paper_id` | contract failure | no |
+| `400` `INVALID_REQUEST` | invalid request — never worded as an outage | no |
 | `404` | not-found | no |
-| `502` | service unavailable | yes |
-| `504` | timeout | yes |
+| `502` `OPENALEX_UNAVAILABLE` | service unavailable | yes |
+| `503` `OUTBOUND_CAPACITY_EXHAUSTED` | service unavailable — same outcome as `502` | yes |
+| `504` `OPENALEX_TIMEOUT` | timeout | yes |
 | other `4xx`/`5xx` | generic HTTP outcome, status retained, body never surfaced | `>=500` |
 
 No response body from an error status ever reaches presentation state.
@@ -100,15 +112,21 @@ Until release management sets a policy (SHR-003), the conservative rule applies:
 
 ## Open gates
 
-These cannot be closed from this repository:
+**Closed 2026-09-09.** ~~Where the canonical v1 bundle is published, and how Android CI
+authenticates to fetch it.~~ The provider publishes it in its own repository at `contracts/v1`,
+released as `paperreader-v1.0.0`. Android vendors it with its `SHA256SUMS`, so the copy carries its
+own integrity proof and needs no CI authentication. Both repositories now drive the same fixtures
+through their production stacks. **SHR-001 and SHR-002 are closed.**
 
-1. **Where the canonical v1 bundle is published**, and how Android CI authenticates to fetch it.
-   Until then `upstream.verifiedByProviderCi` stays `false` and
-   `ContractBundleIntegrityTest.sharedContractDebtStaysOpenUntilTheProviderVerifiesTheSameBundle`
-   asserts it. **SHR-001 and SHR-002 remain open.**
-2. **The supported v1 deprecation window and minimum-client policy**, owned by release management.
+Still open, and not closable from this repository:
+
+1. **The supported v1 deprecation window and minimum-client policy**, owned by release management.
    **SHR-003 remains open.**
+2. **How a new provider release notifies Android that a re-vendor is due.** The digest check fails
+   loudly on a *mismatched* copy, but a stale copy of an older release is internally consistent and
+   passes. Nothing yet watches for a version bump. Tracked under SHR-003.
 
-A green Android contract suite means the client is internally consistent with the recorded
-decisions. It does not mean the two sides agree — only provider verification of the same
-`contractVersion` shows that.
+A green Android contract suite on its own means only that the client is internally consistent with
+the recorded decisions. What shows the two sides agree is both repositories verifying the same
+`contractVersion` — which is now the case, and is what `CanonicalContractTest` and the provider's
+`CanonicalProviderContractTest` exist to keep true.

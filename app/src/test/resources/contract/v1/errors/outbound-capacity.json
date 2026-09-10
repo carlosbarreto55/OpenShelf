@@ -1,0 +1,7 @@
+{
+  "type": "https://paperreader.app/problems/outbound-capacity",
+  "title": "Service temporarily at capacity",
+  "status": 503,
+  "detail": "The service cannot start another upstream request right now. Please retry shortly.",
+  "code": "OUTBOUND_CAPACITY_EXHAUSTED"
+}

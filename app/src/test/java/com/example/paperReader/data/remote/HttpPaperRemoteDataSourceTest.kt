@@ -74,13 +74,41 @@ class HttpPaperRemoteDataSourceTest {
     }
 
     @Test
-    fun otherStatusesKeepTheirCodeWithoutExposingTheBody() = runBlocking {
-        server.enqueueRaw(status = 503, body = """{"error":"maintenance","detail":"secret internals"}""")
+    fun outboundCapacityRejectionJoinsTheRecoverableServiceFailure() = runBlocking {
+        // 503 OUTBOUND_CAPACITY_EXHAUSTED means "retry shortly", which is what 502 already says to
+        // a user. It must not fall through to the generic Http outcome and its outage wording.
+        server.enqueueError(status = 503, bodyFixture = "errors/outbound-capacity.json")
 
         val result = server.source.search(PaperSearchRequestDto(query = "AI"))
 
         val error = (result as RepositoryResult.Failure).error
-        assertEquals(RepositoryError.Http(503), error)
+        assertEquals(RepositoryError.ServiceUnavailable, error)
+        assertTrue(error.isRecoverable)
+    }
+
+    @Test
+    fun anInvalidRequestIsNotReportedAsAnOutage() = runBlocking {
+        // 400 INVALID_REQUEST is the two sides disagreeing about what v1 accepts. Retrying the same
+        // request cannot help, and telling the user the service is down would be a lie.
+        server.enqueueError(status = 400, bodyFixture = "errors/invalid-request.json")
+
+        val result = server.source.search(PaperSearchRequestDto(query = "AI"))
+
+        val error = (result as RepositoryResult.Failure).error
+        assertEquals(RepositoryError.InvalidRequest, error)
+        assertEquals(false, error.isRecoverable)
+    }
+
+    @Test
+    fun otherStatusesKeepTheirCodeWithoutExposingTheBody() = runBlocking {
+        // 429 has no policy of its own in v1, so it is the generic outcome: the code survives, the
+        // server's words do not.
+        server.enqueueRaw(status = 429, body = """{"error":"maintenance","detail":"secret internals"}""")
+
+        val result = server.source.search(PaperSearchRequestDto(query = "AI"))
+
+        val error = (result as RepositoryResult.Failure).error
+        assertEquals(RepositoryError.Http(429), error)
         assertTrue("The server's words must never reach the user", "secret" !in error.userMessage)
     }
 

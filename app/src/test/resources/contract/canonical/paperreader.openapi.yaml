@@ -1,0 +1,274 @@
+openapi: 3.1.0
+info:
+  title: PaperReader API
+  version: 1.0.0
+  description: Canonical contract for the first supported PaperReader live-integration baseline.
+  x-semantic-rules: ./semantics.md
+servers:
+  - url: https://api.paperreader.app
+paths:
+  /v1/papers/search:
+    get:
+      operationId: searchPapers
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string, minLength: 1 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [relevance, newest, citations] }
+        - name: open_access
+          in: query
+          schema: { type: boolean }
+        - name: pdf_available
+          in: query
+          schema: { type: boolean }
+        - name: publication_year
+          in: query
+          schema: { type: integer }
+        - name: work_type
+          in: query
+          schema: { $ref: '#/components/schemas/SearchWorkType' }
+        - name: topic
+          in: query
+          schema: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: A page of papers; an empty result is a successful response.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SearchPapersResponse' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+        '503': { $ref: '#/components/responses/CapacityRejected' }
+        '504': { $ref: '#/components/responses/UpstreamTimeout' }
+  /v1/papers/{paperId}:
+    parameters:
+      - $ref: '#/components/parameters/PaperId'
+    get:
+      operationId: getPaper
+      responses:
+        '200':
+          description: Existing paper details.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GetPaperResponse' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '404': { $ref: '#/components/responses/PaperNotFound' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+        '503': { $ref: '#/components/responses/CapacityRejected' }
+        '504': { $ref: '#/components/responses/UpstreamTimeout' }
+  /v1/papers/{paperId}/access:refresh:
+    parameters:
+      - $ref: '#/components/parameters/PaperId'
+    post:
+      operationId: refreshPaperAccess
+      responses:
+        '200':
+          description: Fresh metadata-derived access resolution.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessRefreshResponse' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '404': { $ref: '#/components/responses/PaperNotFound' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+        '503': { $ref: '#/components/responses/CapacityRejected' }
+        '504': { $ref: '#/components/responses/UpstreamTimeout' }
+  /v1/papers/{paperId}/download:
+    parameters:
+      - $ref: '#/components/parameters/PaperId'
+    get:
+      operationId: getPaperDownload
+      responses:
+        '200':
+          description: Fresh descriptor, or null only when the existing paper has no direct PDF.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DownloadResponse' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '404': { $ref: '#/components/responses/PaperNotFound' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+        '503': { $ref: '#/components/responses/CapacityRejected' }
+        '504': { $ref: '#/components/responses/UpstreamTimeout' }
+components:
+  parameters:
+    PaperId:
+      name: paperId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^W[0-9]+$' }
+  responses:
+    InvalidRequest:
+      description: Invalid request syntax or semantics.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/InvalidRequestProblem' }
+    PaperNotFound:
+      description: The syntactically valid paper ID is unknown.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/PaperNotFoundProblem' }
+    UpstreamUnavailable:
+      description: OpenAlex failed for a non-timeout reason.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/UpstreamUnavailableProblem' }
+    CapacityRejected:
+      description: The local outbound concurrency limit rejected the request.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/CapacityProblem' }
+    UpstreamTimeout:
+      description: An OpenAlex connect, read, or request deadline expired.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/UpstreamTimeoutProblem' }
+  schemas:
+    SearchWorkType:
+      type: string
+      enum: [article, review, preprint, book_chapter, dataset]
+    PublicWorkType:
+      type: [string, 'null']
+      enum: [article, review, preprint, book_chapter, dataset, other, null]
+    AccessState:
+      type: string
+      enum: [DIRECT_PDF, OPEN_FULL_TEXT, NO_FREE_FULL_TEXT, PAYWALLED, UNKNOWN]
+    Author:
+      type: object
+      additionalProperties: false
+      required: [id, name, orcid]
+      properties:
+        id: { type: [string, 'null'] }
+        name: { type: string }
+        orcid: { type: [string, 'null'] }
+    Topic:
+      type: object
+      additionalProperties: false
+      required: [id, name, score]
+      properties:
+        id: { type: [string, 'null'] }
+        name: { type: string }
+        score: { type: [number, 'null'] }
+    ConfirmedPdfDownloadDescriptor:
+      type: object
+      additionalProperties: false
+      required: [url, mime_type, provenance, generated, expires_at_epoch_millis]
+      properties:
+        url: { type: string, format: uri, pattern: '^https://' }
+        mime_type: { type: [string, 'null'] }
+        provenance: { type: [string, 'null'] }
+        generated: { type: boolean }
+        expires_at_epoch_millis: { type: [integer, 'null'], format: int64 }
+    AccessResolution:
+      type: object
+      additionalProperties: false
+      required: [state, source_url, descriptor, provenance]
+      properties:
+        state: { $ref: '#/components/schemas/AccessState' }
+        source_url: { type: [string, 'null'], format: uri }
+        descriptor:
+          anyOf:
+            - $ref: '#/components/schemas/ConfirmedPdfDownloadDescriptor'
+            - type: 'null'
+        provenance: { type: [string, 'null'] }
+    Paper:
+      type: object
+      additionalProperties: false
+      required: [id, title, authors, venue, year, type, topics, citation_count, abstract, access]
+      properties:
+        id: { type: string, pattern: '^W[0-9]+$' }
+        title: { type: string, minLength: 1 }
+        authors:
+          type: array
+          items: { $ref: '#/components/schemas/Author' }
+        venue: { type: [string, 'null'] }
+        year: { type: [integer, 'null'], minimum: 1500, maximum: 2100 }
+        type: { $ref: '#/components/schemas/PublicWorkType' }
+        topics:
+          type: array
+          items: { $ref: '#/components/schemas/Topic' }
+        citation_count: { type: [integer, 'null'], minimum: 0 }
+        abstract: { type: [string, 'null'] }
+        access: { $ref: '#/components/schemas/AccessResolution' }
+    SearchPapersResponse:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor, total_count]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Paper' }
+        next_cursor: { type: [string, 'null'] }
+        total_count: { type: [integer, 'null'], minimum: 0 }
+    GetPaperResponse:
+      type: object
+      additionalProperties: false
+      required: [paper]
+      properties:
+        paper: { $ref: '#/components/schemas/Paper' }
+    AccessRefreshResponse:
+      type: object
+      additionalProperties: false
+      required: [paper_id, access]
+      properties:
+        paper_id: { type: string, pattern: '^W[0-9]+$' }
+        access: { $ref: '#/components/schemas/AccessResolution' }
+    DownloadResponse:
+      type: object
+      additionalProperties: false
+      required: [paper_id, descriptor]
+      properties:
+        paper_id: { type: string, pattern: '^W[0-9]+$' }
+        descriptor:
+          anyOf:
+            - $ref: '#/components/schemas/ConfirmedPdfDownloadDescriptor'
+            - type: 'null'
+    Problem:
+      type: object
+      required: [type, title, status, detail, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri-reference }
+        code: { type: string }
+    InvalidRequestProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            status: { const: 400 }
+            code: { const: INVALID_REQUEST }
+    PaperNotFoundProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            status: { const: 404 }
+            code: { const: PAPER_NOT_FOUND }
+    UpstreamUnavailableProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            status: { const: 502 }
+            code: { const: OPENALEX_UNAVAILABLE }
+    CapacityProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            status: { const: 503 }
+            code: { const: OUTBOUND_CAPACITY_EXHAUSTED }
+    UpstreamTimeoutProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            status: { const: 504 }
+            code: { const: OPENALEX_TIMEOUT }

@@ -103,9 +103,9 @@ Retrofit, DAOs, or download APIs directly.
   inactive restriction is omitted from the wire entirely**, never sent as `false`.
 - `data/remote/PaperMappers.kt` — DTO → domain, and the reference implementation of the fail-closed
   access rules. Read it before adding an access state.
-- `data/remote/HttpPaperRemoteDataSource.kt` — status policy lives here: 404 → `NotFound`,
-  502 → `ServiceUnavailable`, 504 → `Timeout`, everything else keeps its code. Response bodies from
-  error statuses are never read.
+- `data/remote/HttpPaperRemoteDataSource.kt` — status policy lives here: 400 → `InvalidRequest`,
+  404 → `NotFound`, 502 and 503 → `ServiceUnavailable`, 504 → `Timeout`, everything else keeps its
+  code. Response bodies from error statuses are never read.
 - `data/remote/FakePaperRemoteDataSource.kt` — the demo source, plus `FakeRemoteScenario` for
   reproducing not-found, no-PDF, empty cursor pages, 502/504, mismatched identity, and malformed
   data as the *same* repository-level outcomes HTTP produces.
@@ -155,18 +155,35 @@ Retrofit, DAOs, or download APIs directly.
 
 ## Contract testing
 
-`app/src/test/resources/contract/v1/` is a checksum-pinned bundle of request expectations and
-response/error fixtures, with provenance recorded in `manifest.json`. Tests drive it through a real
-local HTTP server (`ContractServer`) using the production Retrofit interface, `RemoteJson`
-converter, and mappers — an in-process API double would skip exactly the seams where drift was
-found.
+**Two bundles, and the distinction is load-bearing.**
 
-Editing a fixture without regenerating the manifest fails `ContractBundleIntegrityTest`. Regenerate
-deliberately, as part of a reviewed contract-version change:
+`app/src/test/resources/contract/canonical/` is the **provider's** `paperreader-v1.0.0` bundle,
+vendored byte-exactly: OpenAPI 3.1, `semantics.md`, canonical fixtures, `VERSION`, and the
+provider's own `SHA256SUMS`. It is the authoritative definition of v1. **Never hand-edit it** — to
+take a new provider release, re-vendor the whole directory from `PaperReaderApi/contracts/v1` and
+let `CanonicalContractTest` re-verify the digests. That test also requires every published fixture
+to be consumed or explicitly waived, so a new canonical case cannot be silently ignored.
+
+`app/src/test/resources/contract/v1/` is this repository's **consumer** bundle, derived from the
+canonical one. It covers the edge cases the twelve canonical fixtures do not enumerate — expired and
+malformed descriptors, mismatched response identity, duplicate IDs, empty pages that still carry a
+cursor, unknown response fields. Its error bodies are the canonical RFC 7807 Problem Details.
+
+Both drive a real local HTTP server (`ContractServer`) through the production Retrofit interface,
+`RemoteJson` converter, and mappers — an in-process API double would skip exactly the seams where
+drift was found.
+
+Editing a consumer fixture without regenerating the manifest fails `ContractBundleIntegrityTest`.
+Regenerate deliberately, as part of a reviewed contract-version change:
 
 ```bash
 python3 tools/update-contract-manifest.py app/src/test/resources/contract/v1
 ```
 
-`docs/api-compatibility.md` records the pinned version, the additive-change rules for v1, and the
-two gates that cannot be closed from this repository.
+`RealBackendSmokeTest` (in `androidTestIntegration`) is the only suite that talks to an actual
+server; it skips when none is listening. `LiveBackendConnectivityTest` next to it deliberately does
+not — it uses an in-process `MockWebServer` to prove the cleartext-loopback and PDF-validation paths
+deterministically.
+
+`docs/api-compatibility.md` records the pinned version, the additive-change rules for v1, and what
+remains open (SHR-003).

@@ -1,1 +1,7 @@
-{ "error": "upstream_unavailable", "message": "OpenAlex rejected the request.", "trace_id": "srv-502-1" }
+{
+  "type": "https://paperreader.app/problems/upstream-unavailable",
+  "title": "Upstream service unavailable",
+  "status": 502,
+  "detail": "The upstream OpenAlex service is currently unavailable. Please try again later.",
+  "code": "OPENALEX_UNAVAILABLE"
+}

@@ -117,6 +117,23 @@
 - [x] 10.5 Run the complete demo and integration JVM suites, Room migration tests, consumer/parity contract suite, Android lint, and both debug/release assemblies.
 - [x] 10.6 Inspect merged manifests and packaged artifacts for Internet/cleartext boundaries and rerun the source/APK OpenAlex-secret checks.
 - [x] 10.7 Run connected Compose/instrumentation tests for detail not-found, filter accessibility, and a controlled live-mode search/PDF transfer on an emulator or device.
-- [x] 10.8 Run the provider suite against the identical canonical contract version; if provider access is unavailable or failures remain, keep live release and SHR-001–003 closure blocked while preserving Android evidence.
+- [x] 10.8 Run the provider suite against the identical canonical contract version; if provider access is unavailable or failures remain, keep live release and SHR-001–003 closure blocked while preserving Android evidence. *(First satisfied via the fallback branch — provider unreachable. Now satisfied on its real branch: `paperreader-v1.0.0` is published and vendored, and both suites pass against it. See section 11.)*
 - [ ] 10.9 Manually verify demo mode, misconfigured integration failure, local HTTP debug, HTTPS release configuration, empty-page continuation, overlapping pagination, total copy, filter combinations, and download reconfirmation failures.
 - [x] 10.10 Update `TECHNICAL_DEBT.md` statuses only for items whose exit criteria and evidence are complete; retain server-dependent/shared items with their external blocker.
+
+## 11. Provider-backed contract closure and real-server verification
+
+Reached once the provider published `paperreader-v1.0.0` and a PaperReader server became reachable
+for development. Section 10.8's fallback branch had kept SHR-001/SHR-002 open; this section runs its
+real branch.
+
+- [x] 11.1 Vendor the provider bundle byte-exactly at `app/src/test/resources/contract/canonical`, including its `SHA256SUMS` and `VERSION`.
+- [x] 11.2 Add `CanonicalContractTest`: re-hash every vendored file against the published digests, and drive all twelve published fixtures through the production Retrofit interface, JSON converter, status policy, and mappers.
+- [x] 11.3 Require every published fixture to be consumed or explicitly waived; record the `access:refresh` waiver against AND-011 so the gap reads as a decision.
+- [x] 11.4 Replace the consumer bundle's error fixtures with the canonical RFC 7807 Problem Details, add the missing `400` and `503` bodies, and regenerate the manifest checksums.
+- [x] 11.5 Repoint the consumer manifest at `paperreader-v1.0.0`, rewrite its provenance to say it derives from the provider bundle, and set `verifiedByProviderCi`.
+- [x] 11.6 Invert the standing integrity gate: provider verification may be claimed only while the vendored bundle is present and pins the same version.
+- [x] 11.7 Map `400 INVALID_REQUEST` to a new non-recoverable `RepositoryError.InvalidRequest` and `503 OUTBOUND_CAPACITY_EXHAUSTED` to the recoverable `ServiceUnavailable`; repoint the generic-status test at a status that genuinely has no policy.
+- [x] 11.8 Add `RealBackendSmokeTest`, which opens a socket to the configured backend and verifies search, cursor advancement, detail identity, descriptor confirmation, the no-PDF outcome, and the unknown-paper outcome; skip rather than fail when no server is listening.
+- [x] 11.9 Run both suites against the same contract version and record the evidence in `TECHNICAL_DEBT.md`.
+- [x] 11.10 Close SHR-001 and SHR-002; keep SHR-003 open against release management.

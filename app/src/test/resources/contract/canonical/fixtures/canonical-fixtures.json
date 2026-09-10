@@ -1,0 +1,66 @@
+{
+  "contract_version": "paperreader-v1.0.0",
+  "fixtures": [
+    {
+      "name": "search-success-and-type-normalization",
+      "method": "GET",
+      "path": "/v1/papers/search",
+      "query": { "query": "graph neural networks" },
+      "status": 200,
+      "response": {
+        "items": [{
+          "id": "W2741809807", "title": "A Great Paper", "authors": [], "venue": null,
+          "year": 2020, "type": "book_chapter", "topics": [], "citation_count": 42,
+          "abstract": null,
+          "access": { "state": "DIRECT_PDF", "source_url": "https://example.org/paper.pdf",
+            "descriptor": { "url": "https://example.org/paper.pdf", "mime_type": "application/pdf",
+              "provenance": "Repository", "generated": false, "expires_at_epoch_millis": null },
+            "provenance": "Repository" }
+        }],
+        "next_cursor": "cursor-after-page", "total_count": 1
+      }
+    },
+    { "name": "search-empty", "method": "GET", "path": "/v1/papers/search",
+      "query": { "query": "no matches" }, "status": 200,
+      "response": { "items": [], "next_cursor": null, "total_count": 0 } },
+    { "name": "search-nullable-total", "method": "GET", "path": "/v1/papers/search",
+      "query": { "query": "papers", "pdf_available": "true" }, "status": 200,
+      "response": { "items": [], "next_cursor": "continue-after-four", "total_count": null } },
+    { "name": "invalid-input", "method": "GET", "path": "/v1/papers/search",
+      "query": { "query": " " }, "status": 400,
+      "response": { "type": "https://paperreader.app/problems/invalid-request", "title": "Invalid request",
+        "status": 400, "detail": "`query` must not be blank.", "code": "INVALID_REQUEST" } },
+    { "name": "paper-details-success", "method": "GET", "path": "/v1/papers/W2741809807", "status": 200,
+      "response": { "paper": { "id": "W2741809807", "title": "A Great Paper", "authors": [],
+        "venue": null, "year": null, "type": "other", "topics": [], "citation_count": null,
+        "abstract": null, "access": { "state": "UNKNOWN", "source_url": null,
+          "descriptor": null, "provenance": null } } } },
+    { "name": "paper-not-found", "method": "GET", "path": "/v1/papers/W999", "status": 404,
+      "response": { "type": "https://paperreader.app/problems/paper-not-found", "title": "Paper not found",
+        "status": 404, "detail": "The requested paper was not found.", "code": "PAPER_NOT_FOUND" } },
+    { "name": "access-refresh-success", "method": "POST", "path": "/v1/papers/W2741809807/access:refresh",
+      "status": 200, "response": { "paper_id": "W2741809807", "access": { "state": "UNKNOWN",
+        "source_url": null, "descriptor": null, "provenance": null } } },
+    { "name": "download-success", "method": "GET", "path": "/v1/papers/W2741809807/download",
+      "status": 200, "response": { "paper_id": "W2741809807", "descriptor": {
+        "url": "https://example.org/paper.pdf", "mime_type": "application/pdf",
+        "provenance": "Repository", "generated": false, "expires_at_epoch_millis": null } } },
+    { "name": "download-existing-no-pdf", "method": "GET", "path": "/v1/papers/W2741809807/download",
+      "status": 200, "response": { "paper_id": "W2741809807", "descriptor": null } },
+    { "name": "upstream-unavailable", "method": "GET", "path": "/v1/papers/W2741809807", "status": 502,
+      "response": { "type": "https://paperreader.app/problems/upstream-unavailable",
+        "title": "Upstream service unavailable", "status": 502,
+        "detail": "The upstream OpenAlex service is currently unavailable. Please try again later.",
+        "code": "OPENALEX_UNAVAILABLE" } },
+    { "name": "outbound-capacity", "method": "GET", "path": "/v1/papers/W2741809807", "status": 503,
+      "response": { "type": "https://paperreader.app/problems/outbound-capacity",
+        "title": "Service temporarily at capacity", "status": 503,
+        "detail": "The service cannot start another upstream request right now. Please retry shortly.",
+        "code": "OUTBOUND_CAPACITY_EXHAUSTED" } },
+    { "name": "upstream-timeout", "method": "GET", "path": "/v1/papers/W2741809807", "status": 504,
+      "response": { "type": "https://paperreader.app/problems/upstream-timeout",
+        "title": "Upstream service timeout", "status": 504,
+        "detail": "The upstream OpenAlex service did not respond within the allowed time.",
+        "code": "OPENALEX_TIMEOUT" } }
+  ]
+}

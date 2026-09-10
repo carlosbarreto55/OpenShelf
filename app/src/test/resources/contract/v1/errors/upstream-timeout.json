@@ -1,1 +1,7 @@
-{ "error": "upstream_timeout", "message": "OpenAlex did not respond in time.", "trace_id": "srv-504-1" }
+{
+  "type": "https://paperreader.app/problems/upstream-timeout",
+  "title": "Upstream service timeout",
+  "status": 504,
+  "detail": "The upstream OpenAlex service did not respond within the allowed time.",
+  "code": "OPENALEX_TIMEOUT"
+}

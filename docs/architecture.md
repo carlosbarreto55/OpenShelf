@@ -151,9 +151,11 @@ mirrored by `FakeRemoteScenario`, so both modes produce the same repository-leve
 | `200`, matching `paper_id`, `descriptor: null` | `DownloadAvailability.Unavailable` | no |
 | `200` that cannot be mapped | `Contract` — never not-found | no |
 | `200` about a different paper | `Contract(INVALID_PAPER_ID)` | no |
+| `400` `INVALID_REQUEST` | `InvalidRequest` — never worded as an outage | no |
 | `404` | `NotFound` | no |
-| `502` | `ServiceUnavailable` | yes |
-| `504` | `Timeout` | yes |
+| `502` `OPENALEX_UNAVAILABLE` | `ServiceUnavailable` | yes |
+| `503` `OUTBOUND_CAPACITY_EXHAUSTED` | `ServiceUnavailable` — same outcome as `502` | yes |
+| `504` `OPENALEX_TIMEOUT` | `Timeout` | yes |
 | other | `Http(code)`, body never read | `>=500` |
 
 ## Download confirmation

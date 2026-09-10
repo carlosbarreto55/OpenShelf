@@ -35,10 +35,26 @@ sealed interface RepositoryError {
         override val isRecoverable = false
     }
 
-    /** The backend is reachable but its upstream is not (HTTP 502). Worth retrying. */
+    /**
+     * The backend is reachable but cannot serve the request right now: its upstream failed
+     * (HTTP 502 `OPENALEX_UNAVAILABLE`) or it refused to start another outbound call
+     * (HTTP 503 `OUTBOUND_CAPACITY_EXHAUSTED`). Both say the same thing to a user, and both are
+     * worth retrying.
+     */
     data object ServiceUnavailable : RepositoryError {
         override val userMessage = "The service is temporarily unavailable. Try again shortly."
         override val isRecoverable = true
+    }
+
+    /**
+     * The backend rejected the request itself (HTTP 400 `INVALID_REQUEST`). The client validates
+     * its own inputs, so reaching this means the two sides disagree about what v1 accepts —
+     * retrying the same request cannot help, and it is deliberately not a [Contract] failure,
+     * which is about a response we could not read.
+     */
+    data object InvalidRequest : RepositoryError {
+        override val userMessage = "We couldn't run that request. Try changing your search."
+        override val isRecoverable = false
     }
 
     data class Http(val statusCode: Int? = null) : RepositoryError {

@@ -1,24 +1,26 @@
 {
   "apiVersion": "v1",
-  "contractVersion": "1.0.0",
-  "pinnedAt": "2026-09-08",
+  "contractVersion": "paperreader-v1.0.0",
+  "pinnedAt": "2026-09-09",
   "upstream": {
     "producer": "PaperReaderApi",
-    "canonicalBundle": "not yet published \u2014 see docs/api-compatibility.md",
-    "provenance": "Authored in the PaperReader Android repository from the recorded business decisions in TECHNICAL_DEBT.md (decisions 2, 3 and 5) and the OpenSpec api-contract-compatibility capability. It is a consumer expectation of v1, NOT a provider-published schema.",
-    "verifiedByProviderCi": false
+    "canonicalBundle": "paperreader-v1.0.0 \u2014 vendored byte-exactly at contract/canonical, with the provider SHA256SUMS",
+    "provenance": "Derived from the provider-published bundle paperreader-v1.0.0 (PaperReaderApi/contracts/v1). The canonical OpenAPI document and semantics.md are the authoritative definition of v1; this bundle adds the consumer-side edge cases the canonical fixtures do not enumerate (expired and malformed descriptors, mismatched identity, duplicate IDs, empty pages that still carry a cursor, unknown response fields). Error bodies are the canonical RFC 7807 Problem Details.",
+    "verifiedByProviderCi": true
   },
   "notes": [
     "Checksums are recorded so an unreviewed local fixture edit cannot silently redefine server behavior.",
     "Regenerate with: python3 tools/update-contract-manifest.py app/src/test/resources/contract/v1",
-    "SHR-001 and SHR-002 stay open until provider CI verifies this same contractVersion."
+    "The provider drives the same contractVersion through Spring in CanonicalProviderContractTest; this repository drives it through the production Retrofit stack in CanonicalContractTest."
   ],
   "resources": {
+    "errors/invalid-request.json": "sha256:9104ea220ddd82bf56f5bb1e686969e0d65c5fdee8bf825887f04a5b8bbaa2fe",
     "errors/malformed-success.json": "sha256:3513191a6ae1c8ebee941bb148d3c96327d7a1c8a4e5440cef5b66c38398d01a",
-    "errors/not-found.json": "sha256:c6824b14a063ed77ef9c7d3f765d6b16e1ceb9902b1defab11dd6d68095b5615",
+    "errors/not-found.json": "sha256:266e0a9586b68757202342dc7cee2bbe0a1785ffc755555a54ba2ef478d68ece",
+    "errors/outbound-capacity.json": "sha256:10e431f8f0eb91bcb5e2b789e4ae00a689342fddd591c9a3ab9dbdba087b3d30",
     "errors/search-missing-required-fields.json": "sha256:f3931f2c5255a13c5813222f90ca3633cca8954044c3223d615aff2e7a567a84",
-    "errors/upstream-timeout.json": "sha256:1899186cc5ed2e907a61a0a1bfed1eb1d5256e43ec9fe696810e483cc335be26",
-    "errors/upstream-unavailable.json": "sha256:fe591f71ef64590c97ac528ab2427c82aa59232ee0e8570ef1f97bd8ebd059b8",
+    "errors/upstream-timeout.json": "sha256:9396064adda0e96dab0e2b031caed50a8d57ba92b8a7b97bf58ca17db47a1f4f",
+    "errors/upstream-unavailable.json": "sha256:054245f9f77f85c6189cc027db3607470cd19fc05dc8d7e2f70979899bdf9a1e",
     "requests/download-descriptor.json": "sha256:99d3d06d1a0713b97d9d194aceb9181144f60b84a72fcffda3c8720f3dce2960",
     "requests/paper-detail.json": "sha256:99d64fb7f6ea0fc07d910c7055321ff88c26dcc5920092485f178042d63a74a4",
     "requests/search-append-page.json": "sha256:2082d0c1bb152ec13cd626c7c2c98f6405b91e9a5ee9fd2feb114e2396b73a78",

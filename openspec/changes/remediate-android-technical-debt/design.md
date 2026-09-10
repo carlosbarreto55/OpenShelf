@@ -151,9 +151,23 @@ The provider remains responsible for publishing and verifying the same canonical
 
 Alternative considered: expand the current `FakeApi` unit double. Rejected because it bypasses Retrofit, HTTP status processing, and serialization—the exact seams where the register found drift.
 
+**Amended once the provider published.** `paperreader-v1.0.0` now exists, carrying an OpenAPI document, written semantic rules, canonical fixtures, and `SHA256SUMS`. It is vendored byte-exactly at `app/src/test/resources/contract/canonical` and is the authoritative definition of v1; the consumer bundle under `contract/v1` is demoted to what it always should have been — the consumer-side *edge cases the canonical fixtures do not enumerate* (expired and malformed descriptors, mismatched identity, duplicate IDs, empty pages that still carry a cursor, unknown response fields), with its error bodies replaced by the canonical Problem Details. `CanonicalContractTest` re-hashes the vendored files against the published digests and drives every published fixture through the production stack, so the two bundles cannot silently diverge and the manifest cannot claim provider verification without the bundle present.
+
+Alternative considered: replace the consumer bundle outright with the canonical one. Rejected because the canonical bundle is a *provider* conformance suite — twelve fixtures covering the server's own outcomes. It has nothing to say about a descriptor that expired between confirmation and transfer, or a page whose every item is unusable. Deleting those cases to achieve a single directory would trade real coverage for tidiness.
+
 ### 9. Documentation is updated from verified state, last
 
 After behavior and tests land, reconcile `README.md`, `CLAUDE.md`, `docs/architecture.md`, and `docs/backend/*`. Documentation must label demo-only behavior, integration commands, current limitations, accepted debt, server rollout dependencies, and active proposals. Links must target archived/main specs rather than deleted change paths. `TECHNICAL_DEBT.md` items are closed only when their exit criteria and tests are satisfied; a green legacy suite alone is insufficient.
+
+### 10. Extend the status policy to the two statuses the canonical contract adds
+
+Business decision 3 named 404, 502, and 504. The published contract also declares `400 INVALID_REQUEST` and `503 OUTBOUND_CAPACITY_EXHAUSTED`, and both were falling through to the generic `Http(code)` outcome.
+
+`503` maps to the existing `ServiceUnavailable`: "the service cannot start another upstream request right now, retry shortly" is what `502` already tells a user, and the generic outcome's "the service is unavailable right now" was both wrong in tone and, by luck rather than intent, recoverable only because `Http.isRecoverable` treats every `5xx` that way.
+
+`400` gets a new `RepositoryError.InvalidRequest`. It is deliberately not `Contract`, which means "the server returned data we could not read"; a 400 is the mirror image — the server could not read what *we* sent. The client validates its own inputs, so reaching this means the two sides disagree about what v1 accepts. Retrying cannot help, and the previous behavior reported it to the user as a service outage.
+
+Alternative considered: leave both to `Http(code)`. Rejected because the register's whole argument for a typed error taxonomy is that a status code is transport detail and the user-facing outcome is not; keeping two documented contract statuses as untyped codes reintroduces exactly the gap the taxonomy closed.
 
 ## Risks / Trade-offs
 
@@ -185,5 +199,5 @@ Rollback keeps the demo flavor available and disables distribution of the integr
 
 ## Open Questions
 
-- Where the server team will publish the canonical v1 bundle and what CI authentication/distribution mechanism Android will use must be agreed before SHR-001/SHR-002 can close. This does not block Android's pinned consumer harness.
+- ~~Where the server team will publish the canonical v1 bundle and what CI authentication/distribution mechanism Android will use must be agreed before SHR-001/SHR-002 can close.~~ **Resolved.** The provider publishes it in its own repository at `contracts/v1`, released as `paperreader-v1.0.0` with `SHA256SUMS`. Android vendors it and re-verifies the digests in its own suite, so no CI authentication mechanism is needed for a copy that carries its own integrity proof. The remaining question is narrower and belongs to release engineering: how a *new* provider release notifies Android that a re-vendor is due. Until that exists, the digest check fails loudly on a stale copy only when the provider version is bumped deliberately.
 - The supported v1 deprecation window and minimum mobile-version policy require release-management agreement before SHR-003 can close. Until then, the conservative rule is that released v1 clients remain supported and no breaking v1 change is allowed.

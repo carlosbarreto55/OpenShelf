@@ -58,3 +58,18 @@ The repository SHALL provide documented local and CI commands that assemble and 
 #### Scenario: Packaged clients are scanned
 - **WHEN** demo or integration artifacts are produced
 - **THEN** the existing secret checks confirm that neither artifact contains an OpenAlex host credential or API key
+
+### Requirement: A real server is exercised, not only a simulated one
+Integration verification SHALL include a suite that opens a connection to the configured PaperReader backend itself and drives it through the production remote source and mappers. That suite MUST skip rather than fail when no server is listening, and MUST derive every result identity from a search performed in the same run rather than hardcoding upstream identifiers.
+
+#### Scenario: A backend is reachable
+- **WHEN** the integration variant runs its live suite against a running PaperReader server
+- **THEN** search, cursor advancement, paper detail, download confirmation, the no-PDF outcome, and the unknown-paper outcome are each verified end to end over real HTTP
+
+#### Scenario: No backend is running
+- **WHEN** the live suite runs on a machine with no PaperReader server listening at the configured address
+- **THEN** its cases are skipped and the build stays green, because an absent development backend is not a defect in the client
+
+#### Scenario: Upstream results change between runs
+- **WHEN** the live suite needs a paper with a particular access state
+- **THEN** it selects one from the results of its own search and skips the case when the live page contains none, so real upstream churn never turns into a false failure

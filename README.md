@@ -11,8 +11,9 @@ of a production-shaped MVVM/Compose architecture ahead of a real backend integra
 >
 > There is a second build, `integration`, that talks to a real PaperReader backend over HTTP. It is
 > a separate product flavor, not a runtime switch, and it fails to assemble without a valid backend
-> URL rather than quietly falling back to demo data. The PaperReader server itself is still being
-> built, so live release remains gated — see [Build modes](#build-modes) and
+> URL rather than quietly falling back to demo data. It has been verified end to end against a real
+> server; live *release* is still gated on the deprecation-window policy (SHR-003) and on
+> server-side PDF verification (API-001) — see [Build modes](#build-modes) and
 > [Live-backend status](#live-backend-status).
 
 ## Screenshots
@@ -136,9 +137,22 @@ halves are checked:
 | Demo mode (search, detail, library, simulated downloads, offline cache) | works today |
 | Integration build, network permission, local HTTP development route | implemented |
 | Request/response/error semantics against a pinned v1 contract | implemented and tested |
-| Real bibliographic results, verified access, real PDFs | **blocked on the PaperReader server** |
-| Shared consumer/provider contract verification (SHR-001/SHR-002) | **blocked** — provider CI has not verified the pinned bundle |
+| Real bibliographic results and real access resolution | **verified 2026-09-09** against a running server — see below |
+| Shared consumer/provider contract verification (SHR-001/SHR-002) | **closed 2026-09-09** — both repositories verify `paperreader-v1.0.0` |
+| Server-side verification that a `DIRECT_PDF` is actually reachable | **accepted debt (API-001)**, owned by the server |
 | v1 deprecation window / minimum-client policy (SHR-003) | **blocked** — needs release-management agreement |
+
+The `integration` build has now been run end to end against a real PaperReader server.
+`RealBackendSmokeTest` (7/7 on a build-managed Pixel 6 emulator, none skipped) verified live search,
+cursor advancement without overlap, paper detail identity, `DIRECT_PDF` descriptor confirmation over
+HTTPS, the `200 + descriptor:null` no-PDF outcome, and `404 → NotFound`. Point a debug build at your
+own server with:
+
+```bash
+./gradlew :app:atdIntegrationDebugAndroidTest -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
+```
+
+It skips rather than fails when no server is listening.
 
 `TECHNICAL_DEBT.md` is the authoritative register; `docs/api-compatibility.md` records the pinned
 contract version and the rules for changing it;
@@ -245,16 +259,18 @@ minSdk 26, target/compile SDK 36, Kotlin `2.2`, no authentication or user accoun
 
 ## Limitations
 
-- The PaperReader server is still being built, so there are no real bibliographic search results,
-  verified access, or downloadable PDFs yet — see
-  [Placeholder behavior](#placeholder-behavior-read-this-first) and
+- The **demo** build has no real bibliographic search results, verified access, or downloadable
+  PDFs, by design — see [Placeholder behavior](#placeholder-behavior-read-this-first). The
+  **integration** build does, against a running PaperReader server; see
   [Live-backend status](#live-backend-status).
 - PDF availability is derived by the server from OpenAlex metadata, not verified against the actual
   remote document. This is accepted debt (API-001), owned by the server; a `DIRECT_PDF` can
   therefore still point at a dead link or a landing page. The client's own download validation
   (`%PDF-` signature plus a successful response) is what catches that today.
-- Android's contract suite passing does not mean client and server agree — only provider CI
-  verifying the same pinned contract version shows that (SHR-001/SHR-002).
+- Both repositories now verify the same `paperreader-v1.0.0` bundle, so a green contract suite does
+  mean the two sides agree about the pinned version. What is *not* yet automated is noticing that
+  the provider has published a **newer** version: a stale vendored copy is internally consistent and
+  passes. Re-vendoring is deliberate — see `docs/api-compatibility.md`.
 - No accounts, cross-device sync, annotations, or citation management (explicitly out of scope —
   see the proposal's Non-Goals).
 - Instrumented/Compose UI tests boot an emulator, so they are not part of

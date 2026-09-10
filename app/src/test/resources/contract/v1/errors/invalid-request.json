@@ -1,0 +1,7 @@
+{
+  "type": "https://paperreader.app/problems/invalid-request",
+  "title": "Invalid request",
+  "status": 400,
+  "detail": "`query` must not be blank.",
+  "code": "INVALID_REQUEST"
+}

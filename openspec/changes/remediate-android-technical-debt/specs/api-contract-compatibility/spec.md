@@ -11,6 +11,21 @@ The Android repository SHALL test against a pinned version of the canonical Pape
 - **WHEN** contract resources do not match the recorded checksum
 - **THEN** the consumer-contract check fails before Android code is merged
 
+### Requirement: The provider-published bundle is the authoritative definition
+Once the provider publishes a canonical bundle, Android SHALL vendor it byte-exactly together with the provider's own digest file, and the consumer bundle SHALL derive from it rather than compete with it. The vendored copy MUST NOT be hand-edited, and every fixture the provider publishes MUST be either consumed by a consumer test or explicitly waived with its reason.
+
+#### Scenario: Vendored bundle is verified against the published digests
+- **WHEN** the consumer suite runs
+- **THEN** every vendored file is re-hashed against the provider's published digest file and the suite fails if any file differs
+
+#### Scenario: A published fixture is neither consumed nor waived
+- **WHEN** the provider bundle contains a fixture that no consumer test drives and no recorded waiver names
+- **THEN** the consumer suite fails, so a new canonical case is a decision rather than an oversight
+
+#### Scenario: Provider verification is claimed without the bundle behind it
+- **WHEN** the consumer manifest asserts provider verification but the vendored bundle is absent or pins a different version
+- **THEN** the integrity gate fails, so the claim can never outlive its evidence
+
 ### Requirement: Transport and semantic consumer verification
 Android consumer tests SHALL exercise the real Retrofit serialization and HTTP status path and SHALL assert request meaning and domain outcomes, not only JSON field presence.
 
@@ -23,8 +38,20 @@ Android consumer tests SHALL exercise the real Retrofit serialization and HTTP s
 - **THEN** the HTTP request preserves that free text and does not transform it into a topic identifier
 
 #### Scenario: Error matrix is evaluated
-- **WHEN** fixtures return 404, 502, 504, malformed success JSON, mismatched identity, or a valid no-PDF response
+- **WHEN** fixtures return 400, 404, 502, 503, 504, malformed success JSON, mismatched identity, or a valid no-PDF response
 - **THEN** each case maps to its specified distinct domain outcome without exposing the raw response body
+
+#### Scenario: A rejected request is distinguished from an outage
+- **WHEN** the server answers `400 INVALID_REQUEST` because it will not accept the request as expressed
+- **THEN** the client reports a non-recoverable invalid-request outcome, never the wording of a service outage
+
+#### Scenario: Capacity rejection is a recoverable service failure
+- **WHEN** the server answers `503 OUTBOUND_CAPACITY_EXHAUSTED` because it cannot start another upstream call
+- **THEN** the client reports the same recoverable service-unavailable outcome it reports for `502`, because both mean "retry shortly"
+
+#### Scenario: A Problem Detail body reaches an error status
+- **WHEN** any error status carries an RFC 7807 Problem Detail describing the failure
+- **THEN** none of its `type`, `title`, `detail`, or `code` text reaches presentation state
 
 #### Scenario: Pagination and value matrix is evaluated
 - **WHEN** fixtures contain empty cursor pages, overlapping IDs, totals present or absent, canonical work types, aliases, or unknown enum values
