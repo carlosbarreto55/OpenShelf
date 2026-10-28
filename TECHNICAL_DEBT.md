@@ -291,16 +291,26 @@ These decisions are final unless explicitly revisited:
 - **Priority:** P0 for integration; intentional for demo builds
 - **Status:** Resolved (2026-09-09)
 - **Owner:** Android/build configuration
-- **Resolution:** `demo` and `integration` product flavors hardcode `FAKE`/`HTTP` in BuildConfig, so
-  the mode is a property of the build rather than something inferred from whether configuration
-  happens to be complete. The backend URL is the only external input; a missing, malformed, or
-  cleartext-in-release URL fails assembly with an actionable message and never substitutes fake data
-  or the simulated download gateway. No OpenAlex credential is present in either APK.
-- **Evidence:** `BackendConfigurationTest`, `DemoBackendSelectionTest` /
-  `IntegrationBackendSelectionTest`, per-flavor
-  `DemoFlavorConfigurationTest`/`IntegrationFlavorConfigurationTest`;
-  `./gradlew :app:verifyBothFlavors -PpaperReaderBackendBaseUrl=<url>` assembles and tests both
-  modes and runs `checkNoOpenAlexSecret` plus `checkNoOpenAlexSecretInArtifacts`.
+- **Resolution:** `demo`, `integration` and `production` product flavors hardcode `FAKE`/`HTTP`/
+  `HTTP` in BuildConfig, so the mode is a property of the build rather than something inferred from
+  whether configuration happens to be complete. A malformed or cleartext-in-release URL fails
+  assembly with an actionable message, and no flavor ever substitutes fake data or the simulated
+  download gateway — the fakes are not on an HTTP build's classpath. No OpenAlex credential is
+  present in any APK.
+- **Amended 2026-09-12 (`add-production-backend-flavor`):** the original exit criterion included
+  "assembly fails when *no* URL is supplied". That specific failure no longer occurs: `integration`
+  now defaults to the deployed backend, and `production` reads no property at all. The protection
+  the criterion existed for is intact and in fact stronger — the fallback is a real backend, never
+  fixture data, and `production`'s address cannot be moved by configuration at all. What was traded
+  away is a build error for a developer who meant to target a local server and forgot to set
+  `paperReaderBackendBaseUrl`; that now reaches the deployed service, which is visibly the wrong
+  dataset rather than a plausible-looking fake one.
+- **Evidence:** `BackendConfigurationTest`, `DemoBackendSelectionTest` / `HttpBackendSelectionTest`,
+  per-flavor `DemoFlavorConfigurationTest` / `IntegrationFlavorConfigurationTest` /
+  `ProductionFlavorConfigurationTest` (which pins the deployed address, its https scheme, and that
+  its host is not a loopback development host — the regression that would matter);
+  `./gradlew :app:verifyAllFlavors` assembles and tests all three modes and runs
+  `checkNoOpenAlexSecret` plus `checkNoOpenAlexSecretInArtifacts`.
 
 ### AND-003 — Local HTTP development is not explicitly supported
 
@@ -311,10 +321,15 @@ These decisions are final unless explicitly revisited:
   to `10.0.2.2`, `localhost` and `127.0.0.1`, and lives in the `integrationDebug` source set alone.
   Configuration validation rejects a cleartext URL for any other host and rejects cleartext outright
   in a release build. README documents the emulator and `adb reverse` routes.
+- **Extended 2026-09-12 (`add-production-backend-flavor`):** the merged-manifest check is no longer
+  release-only. `production` has no local-server story, so **both** of its build types are held to
+  the release standard, and `verifyProductionDebugNetworkPolicy` is part of the routine
+  `verifyProduction` gate rather than something to remember to run.
 - **Evidence:** `LiveBackendConnectivityTest` **ran on a device** and reached a cleartext loopback
-  server, proving the debug route works. `IntegrationManifestTest` and
-  `./gradlew :app:verifyIntegrationReleaseNetworkPolicy` prove the release build carries no
-  exception: "Internet permission present, no cleartext exception."
+  server, proving the debug route works. `IntegrationManifestTest`, `ProductionManifestTest`, and
+  `./gradlew :app:verifyIntegrationReleaseNetworkPolicy :app:verifyProductionDebugNetworkPolicy
+  :app:verifyProductionReleaseNetworkPolicy` prove every other variant carries no exception:
+  "Internet permission present, no cleartext exception."
 
 ### AND-004 — Empty cursor pages are treated as terminal
 

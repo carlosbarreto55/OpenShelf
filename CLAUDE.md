@@ -6,9 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 PaperReader is a working Android app. Search, paper detail, library, downloads, Room caching,
 WorkManager downloads, the fail-closed access rendering, and both a fake and an HTTP remote source
-are **implemented and tested**. What is *not* done is the other side: the PaperReader server is
-still being built, so no build produces real bibliographic results, verified access, or real PDFs
-yet.
+are **implemented and tested**. The PaperReader server is now deployed at `https://barretolab.tech/`
+and the `production` flavor is pinned to it, so a build that returns real bibliographic results and
+real PDFs exists. A production *release* is still gated on the deprecation-window policy (SHR-003)
+and server-side PDF verification (API-001) — see `TECHNICAL_DEBT.md`.
 
 Three things to keep straight before changing anything:
 
@@ -22,6 +23,21 @@ Three things to keep straight before changing anything:
 - **`docs/android-debt-verification-matrix.md`** maps each register item to the exact check that
   closes it, and names which ones cannot be closed from this repository at all.
 
+## Keeping this file current
+
+**At the end of every task, re-read this file and ask whether the work just finished made any part
+of it wrong or incomplete. If it did, update it as part of that same task** — not as a follow-up
+suggestion for the user to accept. A stale CLAUDE.md misleads every later session, so treat the
+update as part of the deliverable rather than an optional extra.
+
+Things that routinely go stale here: the project-status paragraph, the active-changes list, the
+Gradle command list (task names carry a flavor, so a new flavor or verification task changes it),
+the architecture file and package tour, and the "Rules to preserve" invariants. A new invariant that
+future work must not break belongs in "Rules to preserve" the moment it is established.
+
+If nothing in the file is affected, say so briefly and move on — don't invent edits to prove the
+check happened.
+
 ## OpenSpec workflow
 
 Spec-driven development via OpenSpec (`openspec/config.yaml`, schema `spec-driven`). Each change
@@ -32,10 +48,27 @@ alternatives — read this first), `tasks.md` (the ordered checklist), and `spec
 Use the `openspec-*` skills (or `/opsx:*` commands) to propose, update, or archive changes — don't
 hand-edit these files as plain notes. Check task boxes as work completes.
 
-Active changes at the time of writing: `remediate-android-technical-debt` (this milestone),
-`differentiate-screen-states`, `restructure-search-screen-chrome`, `refine-paper-presentation`,
-`add-library-collections`, `add-in-app-pdf-reader`. The last two each take a Room schema version
-(4 and 5); this change took version 3.
+Active changes at the time of writing: `restructure-search-screen-chrome`,
+`refine-paper-presentation`, `add-library-collections`, `add-in-app-pdf-reader`. The last two each
+take a Room schema version (4 and 5).
+
+`differentiate-screen-states`, `remediate-android-technical-debt`, `add-production-backend-flavor`
+and `isolate-demo-implementations` are **archived** under `openspec/changes/archive/` and their
+deltas are merged into `openspec/specs/` — the technical-debt remediation (Room schema version 3),
+the production flavor, and the per-flavor DI split described below are shipped behavior, not
+proposals. The `remediate-android-technical-debt` archive also created two main specs:
+`openspec/specs/api-contract-compatibility/` (the pinned-bundle and parity rules behind
+`verifyApiContract`) and `openspec/specs/live-backend-connectivity/` (flavor selection, the
+cleartext allowlist, and the live-server suite). Two of its requirement deltas were **deliberately
+not applied**, because the two later changes had already superseded them: `Replaceable remote
+source` and `Production-shaped placeholder fixtures` keep the newer main-spec text. Read the main
+specs, not that archive, for current behavior.
+
+`differentiate-screen-states` is shipped too: cause-classified error presentation, skeleton loading,
+the filter-aware empty state, truthful result counts, and the grouped Downloads list are current
+behavior, described by the "Rules to preserve" invariants below. Its `Topic search` delta was
+likewise **not applied** — the main spec's standalone `Truthful result counts` requirement, added
+later, already covers it.
 
 ## Commands
 
@@ -49,13 +82,18 @@ Active changes at the time of writing: `remediate-android-technical-debt` (this 
 ./gradlew :app:verifyDemo                       # assemble + test + lint, demo
 ./gradlew :app:recordRoborazziDemoDebug         # re-record screenshot goldens after a UI change
 
-# Integration requires a backend address; it never falls back to demo data.
+# Production: the deployed backend at https://barretolab.tech/. Takes no arguments and ignores
+# -PpaperReaderBackendBaseUrl entirely — the address is a build constant, not an input.
+./gradlew :app:assembleProductionDebug
+./gradlew :app:verifyProduction
+
+# Integration: the same deployed backend by default, redirected with the property.
 ./gradlew :app:assembleIntegrationDebug -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
 ./gradlew :app:verifyIntegration        -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
-./gradlew :app:verifyBothFlavors        -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
 
+./gradlew :app:verifyAllFlavors                 # all three (verifyBothFlavors is an alias)
 ./gradlew :app:atdDemoDebugAndroidTest          # Compose/instrumentation on a managed emulator
-./gradlew :app:verifyConnected -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080  # both flavors
+./gradlew :app:verifyConnected                  # instrumentation, all three flavors
 ./gradlew checkNoOpenAlexSecret                 # repository-wide secret scan
 ```
 
@@ -71,10 +109,11 @@ carry no Play Store, GMS or SystemUI — the background services that cause inst
 On Apple Silicon the arm64 variant is chosen automatically. Its AVD lives under
 `~/.android/avd/gradle-managed/` and never touches a developer's own AVDs.
 
-Note the shared `androidTest` source set runs against **both** flavors, and
-`app/src/androidTestIntegration/` runs against `integration` only. When changing a mapper or
-repository signature, compile both — `assembleDemoDebugAndroidTest` alone will not catch a break in
-the integration-only source set.
+Note the shared `androidTest` source set runs against **all three** flavors,
+`app/src/androidTestHttp/` against `integration` and `production`, and
+`app/src/androidTestIntegration/` against `integration` alone. When changing a mapper or repository
+signature, compile all of them — `assembleDemoDebugAndroidTest` alone will not catch a break in the
+HTTP-only source sets.
 
 No formatter beyond Android Lint; Kotlin style follows `kotlin.code.style=official`.
 
@@ -109,17 +148,25 @@ Retrofit, DAOs, or download APIs directly.
 - `src/demo/.../data/remote/FakePaperRemoteDataSource.kt` — the demo source, plus
   `FakeRemoteScenario` for reproducing not-found, no-PDF, empty cursor pages, 502/504, mismatched
   identity, and malformed data as the *same* repository-level outcomes HTTP produces. It lives in
-  the **`demo` source set**, not `main`, so no fake implementation exists in an integration build;
-  `IntegrationBackendSelectionTest` asserts the classes cannot even be loaded there.
+  the **`demo` source set**, not `main`, so no fake implementation exists in an HTTP build;
+  `HttpBackendSelectionTest` asserts the classes cannot even be loaded in either HTTP flavor.
 - `data/local/` — Room. `SearchCacheDao.persistPage` is the single transactional write path for a
   mapped page.
 - `ui/` — one package per feature (`search`, `paperdetail`, `library`, `downloads`) plus shared
   `components/`, `navigation/`, `theme/`. `MaterialTheme.spacing` is the spacing token source; do
-  not hardcode `dp`.
+  not hardcode `dp`. Two shared mapping points live in `components/`:
+  `AccessPresentation.kt` (access → affordance) and `ErrorPresentation.kt`
+  (`RepositoryError` → headline, explanation, retry, secondary route). `ui/search/ActiveFilters.kt`
+  is the single enumeration of which filters are currently narrowing a search.
+  For Material 3 component, theming and layout guidance, use the vendored `material-3` project
+  skill (`.claude/skills/material-3/`, from `hamen/material-3-skill` v1.1.1, MIT). It is generic
+  advice: where it conflicts with this file (e.g. `MaterialTheme.spacing`, the shared mapping
+  points, fail-closed access rendering), this file wins.
 - `di/` — `BackendModule` (in `main`) provides only `BackendConfiguration`. **Which** remote source
-  and download gateway the app gets is bound per flavor: `src/demo/.../di/DemoBackendModule.kt` and
-  `src/integration/.../di/IntegrationBackendModule.kt`. There is no runtime mode switch to get
-  wrong — picking the wrong implementation is a compile error, not a branch.
+  and download gateway the app gets is bound per flavor: `src/demo/.../di/DemoBackendModule.kt` for
+  fixtures, and `src/http/.../di/HttpBackendModule.kt` — compiled into *both* `integration` and
+  `production` — for a real server. There is no runtime mode switch to get wrong; picking the wrong
+  implementation is a compile error, not a branch.
 
 ## Rules to preserve
 
@@ -129,6 +176,22 @@ Retrofit, DAOs, or download APIs directly.
   descriptor — renders with **no** badge, source URL, lock icon, or action, not even a disabled
   one. This holds on search cards, detail, library, and downloads alike. The single mapping point is
   `ui/components/AccessPresentation.kt`'s `toAccessAction()`.
+- **Failures are presented by cause, through one mapping point.** `SearchContent.Error` and
+  `PaperDetailContent.Error` carry the `RepositoryError` itself, never a flattened message, and
+  `ui/components/ErrorPresentation.kt`'s `toPresentation()` is the only place a cause becomes copy.
+  Its `when` is exhaustive over the sealed taxonomy, so a new variant is a compile error rather than
+  a silent fall-through to a generic message. A retry is offered **only** when `isRecoverable` is
+  true, every cause additionally names an `ErrorRoute` that still works under that failure (offline
+  → the Room-backed Library), and the explanation is always the error's own `userMessage` — never a
+  status code, contract-failure name, payload, URL or stack trace.
+- **The active-filter list has one source.** `activeFiltersOf(PaperFilters)` enumerates which
+  filters are on; the chip row and the filter-aware empty state both read it, so a new filter is
+  added there and nowhere else.
+- **Downloads are grouped by required action.** `DownloadsViewModel` computes ordered sections
+  (in progress → needs attention → on this device) rather than inheriting DAO order; a canceled
+  record leaves the list instead of becoming a group, and an empty group is never emitted, so no
+  heading can stand over nothing. "Clear completed" removes the record and its managed file
+  together, through the gateway that owns both.
 - **No OpenAlex key or direct OpenAlex call.** The client talks only to the PaperReader backend.
   Two Gradle checks enforce this on sources and packaged artifacts.
 - **Transfer-time descriptor confirmation.** Every initial *and* retried download calls
@@ -154,7 +217,10 @@ Retrofit, DAOs, or download APIs directly.
   documented legacy aliases (`book-chapter`, `journal_article`) in any letter case, maps unknown
   values to `OTHER` and blank to `UNKNOWN`, and never loses the paper.
 - **Never fabricate downloaded content.** The demo download writes a plain-text disclaimer, never
-  bytes that could pass for the requested PDF.
+  bytes that could pass for the requested PDF. A failed download states that no partial file was
+  kept, which is true because bytes are only ever written after PDF validation succeeds; the
+  failure text itself comes from `DownloadFailureReason`, shared by the code that writes
+  `DownloadRecord.errorMessage` and the code that explains it.
 - **There is no `access:refresh` client operation.** It had no production call site (AND-011);
   detail refresh and download confirmation cover every freshness need. Do not reintroduce it
   without a defined product flow and a capability delta.
@@ -186,8 +252,8 @@ Regenerate deliberately, as part of a reviewed contract-version change:
 python3 tools/update-contract-manifest.py app/src/test/resources/contract/v1
 ```
 
-`RealBackendSmokeTest` (in `androidTestIntegration`) is the only suite that talks to an actual
-server; it skips when none is listening. `LiveBackendConnectivityTest` next to it deliberately does
+`RealBackendSmokeTest` (in `androidTestHttp`, so it runs under both HTTP flavors) is the only suite
+that talks to an actual server; it skips when none is listening. `LiveBackendConnectivityTest` next to it deliberately does
 not — it uses an in-process `MockWebServer` to prove the cleartext-loopback and PDF-validation paths
 deterministically.
 

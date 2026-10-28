@@ -3,13 +3,14 @@
 The `demo` product flavor shows placeholder data. Everything it displays — search results, paper
 metadata, access states, download descriptors — comes from `FakePaperRemoteDataSource`
 (`app/src/demo/java/com/example/paperReader/data/remote/FakePaperRemoteDataSource.kt` — the `demo`
-source set, so it is absent from an integration build), **not** a
-live OpenAlex or PaperReader backend integration. The demo APK does not even declare the `INTERNET`
+source set, so it is absent from an HTTP build), **not** a live
+OpenAlex or PaperReader backend integration. The demo APK does not even declare the `INTERNET`
 permission.
 
-The `integration` flavor is the live path; see `README.md` "Build modes". It is a separate build,
-not a runtime switch, and it fails to assemble without a valid backend URL rather than falling back
-to what this document describes.
+The `production` and `integration` flavors are the live paths; see `README.md` "Build modes". They
+are separate builds, not runtime switches, and neither can fall back to what this document describes
+— the fixtures are not on their classpath. `production` is pinned to the deployed service at
+`https://barretolab.tech/`; `integration` goes wherever `-PpaperReaderBackendBaseUrl` points it.
 
 ## How placeholder data flows through real code
 
@@ -42,11 +43,11 @@ spans three cursor pages, so pagination is exercised without any special-casing.
 ## Making placeholder behavior visible
 
 - `BackendConfiguration.mode` (from `core/config/BackendConfiguration.kt`) is `FAKE` in the `demo`
-  flavor and `HTTP` in `integration`. Both are hardcoded in the flavor's BuildConfig — no Gradle
-  property or runtime condition can turn one into the other.
+  flavor and `HTTP` in both `integration` and `production`. All three are hardcoded in the flavor's
+  BuildConfig — no Gradle property or runtime condition can turn one into another.
 - Whenever the app runs in `FAKE` mode, `PaperReaderApp` shows a `DemoDataNotice` banner
   ("Demo data — no live backend connected yet.") above the navigation host so demo behavior is
-  never mistaken for a working integration.
+  never mistaken for a live backend. The HTTP flavors never show it.
 - `FakePaperRemoteDataSource` exposes `latencyMillis` (simulated network delay), `forcedFailure`
   (a `RepositoryError` returned on every call until cleared), and `scenario`
   (a `FakeRemoteScenario`) so loading, retry, offline, and error states can be demonstrated or
@@ -59,12 +60,16 @@ spans three cursor pages, so pagination is exercised without any special-casing.
 
 ## Switching to the live backend
 
-Build the other flavor. There is no property that turns the demo build into a live one:
+Build one of the HTTP flavors. There is no property that turns the demo build into a live one:
 
 ```bash
+# The deployed service at https://barretolab.tech/. Takes no arguments.
+./gradlew :app:assembleProductionDebug
+
+# Or a server of your own.
 ./gradlew :app:assembleIntegrationDebug -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
 ```
 
 No UI, ViewModel, or domain code changes are required — both remote sources implement the same
 `PaperRemoteDataSource` interface and produce the same DTOs. See `README.md` "Build modes" for the
-emulator/ADB networking details and the HTTPS-only release rule.
+emulator/ADB networking details, the HTTPS-only rules, and production release signing.

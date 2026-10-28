@@ -9,9 +9,10 @@ of a production-shaped MVVM/Compose architecture ahead of a real backend integra
 > pipeline — see [Placeholder behavior](#placeholder-behavior-read-this-first) before treating
 > anything you see as real bibliographic data or a real PDF.
 >
-> There is a second build, `integration`, that talks to a real PaperReader backend over HTTP. It is
-> a separate product flavor, not a runtime switch, and it fails to assemble without a valid backend
-> URL rather than quietly falling back to demo data. It has been verified end to end against a real
+> Two other builds talk to a real PaperReader backend over HTTP: `production`, pinned to the
+> deployed service at `https://barretolab.tech/`, and `integration`, which points wherever you aim
+> it. Both are separate product flavors, not runtime switches, and neither can fall back to demo
+> data — the fakes are not on their classpath. They have been verified end to end against a real
 > server; live *release* is still gated on the deprecation-window policy (SHR-003) and on
 > server-side PDF verification (API-001) — see [Build modes](#build-modes) and
 > [Live-backend status](#live-backend-status).
@@ -74,28 +75,39 @@ With no backend configured, the app defaults to fake mode and is fully usable:
 ## Build modes
 
 The backend mode is a property of the build, never inferred at runtime from whether configuration
-happens to be complete.
+happens to be complete. Three flavors: fixtures, a backend you choose, and the deployed one.
 
-| | `demo` | `integration` |
-|---|---|---|
-| Remote source | `FakePaperRemoteDataSource` | `HttpPaperRemoteDataSource` |
-| Download gateway | `FakeDownloadManager` (simulated) | `WorkManagerDownloadGateway` (real transfers) |
-| Where the fakes live | `src/demo/` | **nowhere** — not on the classpath |
-| Backend URL | not used | **required**, `-PpaperReaderBackendBaseUrl=<url>` |
-| `INTERNET` permission | not declared | declared |
-| Missing/invalid URL | n/a | assembly fails with an actionable message |
+| | `demo` | `integration` | `production` |
+|---|---|---|---|
+| Remote source | `FakePaperRemoteDataSource` | `HttpPaperRemoteDataSource` | `HttpPaperRemoteDataSource` |
+| Download gateway | `FakeDownloadManager` (simulated) | `WorkManagerDownloadGateway` (real transfers) | `WorkManagerDownloadGateway` (real transfers) |
+| Where the fakes live | `src/demo/` | **nowhere** — not on the classpath | **nowhere** — not on the classpath |
+| Backend URL | not used | `-PpaperReaderBackendBaseUrl=<url>`, else the deployed one | `https://barretolab.tech/`, a build constant |
+| Can it be redirected? | n/a | yes, that is the point | **no** — it reads no property |
+| `applicationId` | `…paperReader.demo` | `…paperReader.integration` | `com.example.paperReader` |
+| `INTERNET` permission | not declared | declared | declared |
+| Cleartext | none | debug only, loopback hosts only | **none, in either build type** |
+| Invalid URL | n/a | assembly fails with an actionable message | assembly fails with an actionable message |
+
+`integration` and `production` compile the same wiring from `src/http/` — one Hilt module, one
+`INTERNET` declaration, one set of binding assertions. They differ in where the address comes from,
+and deliberately nowhere else.
 
 ```bash
 # Demo: no backend, no network.
 ./gradlew :app:assembleDemoDebug
 ./gradlew :app:verifyDemo                 # assemble + JVM tests + lint
 
-# Integration: needs a backend address.
+# Production: the deployed backend. Takes no arguments, and ignores any you set.
+./gradlew :app:assembleProductionDebug
+./gradlew :app:verifyProduction
+
+# Integration: the deployed backend too, unless you point it somewhere else.
 ./gradlew :app:assembleIntegrationDebug -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
 ./gradlew :app:verifyIntegration        -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
 
-# Everything, both flavors, plus the source and packaged-artifact secret scans.
-./gradlew :app:verifyBothFlavors        -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
+# Everything, all three flavors, plus the source and packaged-artifact secret scans.
+./gradlew :app:verifyAllFlavors
 ```
 
 ### Running from Android Studio
@@ -104,8 +116,9 @@ Android Studio selects **`demoDebug`** by default, because `demo` sorts first al
 is the usual reason the app shows fixture data when you expected a live backend.
 
 1. **Pick the variant.** Build → Select Build Variant… (or the *Build Variants* panel on the left
-   edge) → set `app` to `integrationDebug`.
-2. **Give Gradle the backend address.** The Run ▶ button has nowhere to pass `-P`, so put it where
+   edge) → set `app` to `productionDebug` for the deployed backend, or `integrationDebug` if you are
+   running a server locally.
+2. **Only for a local server:** the Run ▶ button has nowhere to pass `-P`, so put the address where
    Gradle finds it on its own — add one line to `~/.gradle/gradle.properties` (machine-global, never
    committed):
 
@@ -113,24 +126,31 @@ is the usual reason the app shows fixture data when you expected a live backend.
    paperReaderBackendBaseUrl=http://10.0.2.2:8080
    ```
 
+   This affects `integration` only. `production` reads no property, so nothing you put here can
+   move it off the deployed backend — which is the whole reason it is a separate flavor.
 3. **Run ▶.**
 
 Two things to know:
 
-- **Release builds then need an explicit override**, because `integrationRelease` rejects cleartext:
-  `./gradlew :app:assembleIntegrationRelease -PpaperReaderBackendBaseUrl=https://…`. A `-P` flag
-  always wins over the properties file.
-- **The two flavors install as two separate apps.** `demo` carries
-  `applicationIdSuffix = ".demo"`, so `com.example.paperReader.demo` and `com.example.paperReader`
-  coexist on a device. If you have run both, there are two launcher icons — check which one you are
-  opening before concluding the backend is not wired up.
+- **`integrationRelease` needs an explicit https override** if the properties file holds a cleartext
+  address: `./gradlew :app:assembleIntegrationRelease -PpaperReaderBackendBaseUrl=https://…`. A
+  `-P` flag always wins over the properties file. `productionRelease` needs no such care.
+- **The three flavors install as three separate apps** — `com.example.paperReader.demo`,
+  `com.example.paperReader.integration`, and `com.example.paperReader` — so they coexist on a
+  device. If you have run more than one, there are multiple launcher icons; check which one you are
+  opening before concluding the backend is not wired up. The version name carries the same
+  distinction (`1.0-demo`, `1.0-integration`, plain `1.0` for production).
 
-Omitting the URL is not a soft failure:
+Omitting the URL is not a failure any more — `integration` falls back to the deployed backend rather
+than refusing to build. What it will never do is fall back to *demo data*; an HTTP flavor has no
+fixture implementation on its classpath to fall back to. If you meant to hit a local server and
+forgot the property, you will notice because the results are real.
+
+A genuinely unusable address still stops the build:
 
 ```
-> Cannot assemble integrationDebug: no PaperReader backend base URL was supplied.
-  Pass -PpaperReaderBackendBaseUrl=<url> or set it in gradle.properties;
-  the integration flavor never falls back to demo data.
+> Cannot assemble integrationDebug: "http://api.example.com" is cleartext for a host outside
+  the debug loopback allowlist (10.0.2.2, localhost, 127.0.0.1). Use https for any other host.
 ```
 
 ### Reaching a local server
@@ -147,16 +167,48 @@ well as release.
 
 ### Release transport
 
-`integrationRelease` accepts only an HTTPS base URL and contains no cleartext exception. Both
-halves are checked:
+`integrationRelease`, `productionDebug` and `productionRelease` accept only an HTTPS base URL and
+contain no cleartext exception. `integrationDebug` is the sole exception, and only for the loopback
+hosts above. Both halves are checked:
 
 ```bash
 ./gradlew :app:assembleIntegrationRelease -PpaperReaderBackendBaseUrl=http://api.example.com
 # > Cannot assemble integrationRelease: "http://api.example.com" is cleartext.
-#   An integration-release build must use https.
+#   This build must use https.
 
 ./gradlew :app:verifyIntegrationReleaseNetworkPolicy -PpaperReaderBackendBaseUrl=https://api.example.com
 # > integrationRelease: Internet permission present, no cleartext exception.
+
+# Production is held to the release standard in its debug build too — it has no loopback story.
+./gradlew :app:verifyProductionDebugNetworkPolicy :app:verifyProductionReleaseNetworkPolicy
+# > productionDebug: Internet permission present, no cleartext exception.
+# > productionRelease: Internet permission present, no cleartext exception.
+```
+
+### Signing a production release
+
+`assembleProductionRelease` refuses to produce an unsigned artifact. Generate a keystore once, keep
+it outside the repository (`*.jks` and `*.keystore` are git-ignored regardless), and put the four
+properties in `~/.gradle/gradle.properties`:
+
+```bash
+keytool -genkeypair -v -keystore ~/keys/paperreader-release.jks \
+  -alias paperreader -keyalg RSA -keysize 4096 -validity 10000
+```
+
+```properties
+paperReaderReleaseStoreFile=/Users/you/keys/paperreader-release.jks
+paperReaderReleaseStorePassword=…
+paperReaderReleaseKeyAlias=paperreader
+paperReaderReleaseKeyPassword=…
+```
+
+Without them, every other variant still builds; only `productionRelease` stops:
+
+```
+> Cannot assemble productionRelease: release signing is not configured. Set
+  paperReaderReleaseStoreFile, paperReaderReleaseStorePassword, paperReaderReleaseKeyAlias,
+  paperReaderReleaseKeyPassword in ~/.gradle/gradle.properties; they must never be committed.
 ```
 
 ## Live-backend status
@@ -165,23 +217,32 @@ halves are checked:
 |---|---|
 | Demo mode (search, detail, library, simulated downloads, offline cache) | works today |
 | Integration build, network permission, local HTTP development route | implemented |
+| Production build pinned to the deployed service | **implemented 2026-09-12** — `https://barretolab.tech/`, verified below |
 | Request/response/error semantics against a pinned v1 contract | implemented and tested |
 | Real bibliographic results and real access resolution | **verified 2026-09-09** against a running server — see below |
 | Shared consumer/provider contract verification (SHR-001/SHR-002) | **closed 2026-09-09** — both repositories verify `paperreader-v1.0.0` |
 | Server-side verification that a `DIRECT_PDF` is actually reachable | **accepted debt (API-001)**, owned by the server |
 | v1 deprecation window / minimum-client policy (SHR-003) | **blocked** — needs release-management agreement |
 
-The `integration` build has now been run end to end against a real PaperReader server.
-`RealBackendSmokeTest` (7/7 on a build-managed Pixel 6 emulator, none skipped) verified live search,
-cursor advancement without overlap, paper detail identity, `DIRECT_PDF` descriptor confirmation over
-HTTPS, the `200 + descriptor:null` no-PDF outcome, and `404 → NotFound`. Point a debug build at your
-own server with:
+Both HTTP builds have now been run end to end against a real PaperReader server. The
+`production` build reached the deployed service at `https://barretolab.tech/` on 2026-09-12:
+`atdProductionDebugAndroidTest` was 29/29 on a build-managed Pixel 6 emulator with **none skipped**,
+which is the part that matters — `RealBackendSmokeTest` skips when nothing is listening, so a full
+run is proof the deployment answered. Its seven cases verified live search, cursor advancement
+without overlap, paper detail identity, `DIRECT_PDF` descriptor confirmation over HTTPS, the
+`200 + descriptor:null` no-PDF outcome, `404 → NotFound`, and a PDF-only search inside the client
+timeout. Run it yourself, or point a debug build at your own server:
 
 ```bash
+# The deployed backend:
+./gradlew :app:atdProductionDebugAndroidTest
+
+# Or your own server:
 ./gradlew :app:atdIntegrationDebugAndroidTest -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
 ```
 
-It skips rather than fails when no server is listening.
+The suite lives in `src/androidTestHttp/` and runs under both flavors. It skips rather than fails
+when no server is listening.
 
 `TECHNICAL_DEBT.md` is the authoritative register; `docs/api-compatibility.md` records the pinned
 contract version and the rules for changing it;
@@ -191,8 +252,9 @@ register item to the exact check that closes it.
 ### Controlled end-to-end check
 
 `app/src/androidTestIntegration/.../LiveBackendConnectivityTest.kt` runs a local HTTP server on the
-device itself, serves the pinned contract fixtures over the documented loopback host, and completes
-a **validated** PDF transfer (a body that is not a real PDF is rejected even on a `200`). It needs
+device itself. It stays integration-only, because the cleartext loopback route it proves is
+something only `integrationDebug` is entitled to. It serves the pinned contract fixtures over the
+documented loopback host, and completes a **validated** PDF transfer (a body that is not a real PDF is rejected even on a `200`). It needs
 a connected device or emulator, and carries no credential of any kind:
 
 ```bash
@@ -258,8 +320,9 @@ tears it down:
 
 ```bash
 ./gradlew :app:atdDemoDebugAndroidTest
+./gradlew :app:atdProductionDebugAndroidTest
 ./gradlew :app:atdIntegrationDebugAndroidTest -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080
-./gradlew :app:verifyConnected                -PpaperReaderBackendBaseUrl=http://10.0.2.2:8080  # both
+./gradlew :app:verifyConnected                                                    # all three
 ```
 
 The device is a Pixel 6 on API 33 using an **`aosp-atd`** image — an Automated Test Device with no
