@@ -38,6 +38,30 @@ future work must not break belongs in "Rules to preserve" the moment it is estab
 If nothing in the file is affected, say so briefly and move on — don't invent edits to prove the
 check happened.
 
+## Git workflow
+
+- **Nothing is committed directly to `main`.** Every change — code, docs, specs, this file — starts
+  on its own branch and reaches `main` only by a merged pull request. Branch before the first commit.
+  A PR that resolves a GitHub issue says `Fixes #N` in its description.
+- **Each commit is at most ~300–500 changed lines** (insertions plus deletions, as
+  `git show --numstat` counts them). A task or bug bigger than that is broken into a sequence of
+  smaller commits, each one coherent on its own — split by layer or concern, keep a change and its
+  tests together where they fit, never cut a commit at an arbitrary file boundary just to hit the
+  number. What `--numstat` counts as zero (pure renames, binary files such as screenshot goldens)
+  and third-party content vendored verbatim (e.g. `.claude/skills/material-3/`) do not count
+  toward the limit; isolate them in their own commits.
+- **Commit messages follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/):**
+  `<type>(<optional scope>): <description>`, with `type` one of `feat`, `fix`, `docs`, `style`,
+  `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. The description is imperative,
+  lowercase and has no trailing period; a body explains *why*. A breaking change adds `!` after the
+  type/scope and a `BREAKING CHANGE:` footer. Scopes used so far: `downloads`, `search`, `ui`,
+  `openspec`.
+- **Branch names follow [Conventional Branch](https://conventional-branch.github.io/):**
+  `<type>/<description>`, with `type` one of `feature/` (or `feat/`), `bugfix/` (or `fix/`),
+  `hotfix/`, `release/`, `chore/`. Lowercase letters, digits and single hyphens only — no leading,
+  trailing or doubled hyphens; dots only in a `release/` version. Put the issue number in when there
+  is one: `bugfix/issue-3-search-tab-from-detail`.
+
 ## OpenSpec workflow
 
 Spec-driven development via OpenSpec (`openspec/config.yaml`, schema `spec-driven`). Each change
