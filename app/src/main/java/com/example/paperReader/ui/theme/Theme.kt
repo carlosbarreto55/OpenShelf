@@ -105,6 +105,13 @@ data class PaperReaderSpacing(
     val compact: Dp = 12.dp,
     val control: Dp = 8.dp,
     val hairline: Dp = 1.dp,
+    /** The floor every interactive element's touch area is held at, independent of how small it
+     * is allowed to *look*. */
+    val touchTarget: Dp = 48.dp,
+    /** A text field at rest. */
+    val field: Dp = 56.dp,
+    /** A text field in the collapsed control region: shorter, but never below [touchTarget]. */
+    val fieldCompact: Dp = 48.dp,
 )
 
 val LocalPaperReaderSpacing = staticCompositionLocalOf { PaperReaderSpacing() }
