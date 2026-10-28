@@ -350,6 +350,14 @@ Re-record screenshot goldens after an intentional UI change with
 
 minSdk 26, target/compile SDK 36, Kotlin `2.2`, no authentication or user accounts.
 
+## Automated code review
+
+Every pull request into `main` is reviewed by Claude. Findings are critical, medium or suggestion,
+and any critical finding (main-thread blocking, ANR or crash risk, or a breach of the Git workflow in
+`CLAUDE.md`) fails the required `claude-review` check, which only a repository admin can bypass. See
+[docs/code-review.md](docs/code-review.md) for the criteria, the secret to configure, the `main`
+ruleset and how to bypass.
+
 ## Limitations
 
 - The **demo** build has no real bibliographic search results, verified access, or downloadable

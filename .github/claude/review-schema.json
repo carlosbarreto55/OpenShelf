@@ -1,0 +1,71 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "counts", "findings"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "Two to four sentences on the overall state of the pull request."
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["critical", "medium", "suggestion"],
+      "properties": {
+        "critical": { "type": "integer", "minimum": 0 },
+        "medium": { "type": "integer", "minimum": 0 },
+        "suggestion": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "severity",
+          "category",
+          "file",
+          "line",
+          "title",
+          "description",
+          "why_it_matters",
+          "suggestion"
+        ],
+        "properties": {
+          "severity": { "type": "string", "enum": ["CRITICAL", "MEDIUM", "SUGGESTION"] },
+          "category": {
+            "type": "string",
+            "enum": [
+              "performance",
+              "anr",
+              "crash",
+              "git-workflow",
+              "architecture",
+              "kotlin",
+              "compose",
+              "coroutines",
+              "duplication",
+              "naming",
+              "readability",
+              "other"
+            ]
+          },
+          "file": {
+            "type": "string",
+            "description": "Repository-relative path, or an empty string when the finding is about the branch, title or commits rather than a file."
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Line number in the new version of the file, or 0 when the finding has no single line."
+          },
+          "title": { "type": "string", "description": "One short line naming the problem." },
+          "description": { "type": "string", "description": "What is wrong, with the evidence from the diff." },
+          "why_it_matters": { "type": "string", "description": "The concrete consequence for users or maintainers." },
+          "suggestion": { "type": "string", "description": "How to fix it, with code when that is clearer." }
+        }
+      }
+    }
+  }
+}
