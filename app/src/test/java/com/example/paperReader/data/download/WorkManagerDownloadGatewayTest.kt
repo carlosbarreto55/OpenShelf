@@ -17,9 +17,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -32,8 +35,12 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class WorkManagerDownloadGatewayTest {
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
     private lateinit var database: PaperReaderDatabase
     private lateinit var workManager: WorkManager
+    private lateinit var fileStorage: DownloadFileStorage
     private lateinit var gateway: WorkManagerDownloadGateway
 
     private val paper = testPaper("W1")
@@ -58,12 +65,42 @@ class WorkManagerDownloadGatewayTest {
             .addCallback(PaperReaderDatabase.enableForeignKeysCallback)
             .allowMainThreadQueries()
             .build()
-        gateway = WorkManagerDownloadGateway(workManager, database.downloadDao(), FakeClock(0L))
+        fileStorage = DownloadFileStorage(temporaryFolder.newFolder("downloads"))
+        gateway = WorkManagerDownloadGateway(workManager, database.downloadDao(), fileStorage, FakeClock(0L))
     }
 
     @After
     fun tearDown() {
         database.close()
+    }
+
+    @Test
+    fun clearCompletedRemovesCompletedRecordsAndTheirFilesTogether() = runTest {
+        gateway.enqueue(paper, original)
+        gateway.enqueue(testPaper("W2"), original)
+        val dao = database.downloadDao()
+        dao.upsert(dao.get("W1")!!.copy(state = DownloadState.COMPLETED))
+        dao.upsert(dao.get("W2")!!.copy(state = DownloadState.FAILED))
+        val completedFile = fileStorage.write("W1", extension = "pdf", bytes = byteArrayOf(1, 2, 3))
+        val failedFile = fileStorage.write("W2", extension = "pdf", bytes = byteArrayOf(4))
+
+        gateway.clearCompleted()
+
+        // Record and file go together: neither is left pointing at the other.
+        assertEquals(null, dao.get("W1"))
+        assertFalse("The completed file outlived its record", completedFile.exists())
+        // Nothing that still needs a decision is touched.
+        assertEquals(DownloadState.FAILED, dao.get("W2")?.state)
+        assertTrue("A failed record's file was deleted with the completed ones", failedFile.exists())
+    }
+
+    @Test
+    fun clearCompletedLeavesInProgressRecordsAlone() = runTest {
+        gateway.enqueue(paper, original)
+
+        gateway.clearCompleted()
+
+        assertEquals(DownloadState.QUEUED, database.downloadDao().get("W1")?.state)
     }
 
     @Test

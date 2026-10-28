@@ -163,6 +163,27 @@ class DownloadsRepositoryImplTest {
         assertEquals(listOf("d1"), gateway.cancelCalls)
     }
 
+    @Test
+    fun clearCompletedGoesThroughTheGatewayAndNeverTouchesThePaperSide() = runTest {
+        val gateway = FakeDownloadGateway()
+        gateway.setDownloads(
+            listOf(
+                record(PaperId("W1"), DownloadState.COMPLETED),
+                record(PaperId("W2"), DownloadState.FAILED),
+            ),
+        )
+        val papers = repositoryConfirming(RepositoryResult.Success(DownloadAvailability.Unavailable))
+
+        val result = DownloadsRepositoryImpl(gateway, papers).clearCompletedDownloads()
+
+        assertTrue(result is RepositoryResult.Success)
+        assertEquals(1, gateway.clearCompletedCalls)
+        assertEquals(listOf(PaperId("W2")), gateway.currentDownloads().map { it.paperId })
+        // Saved papers are a different capability with different storage; clearing a download must
+        // not reach into it, so nothing here is asked of the paper repository at all.
+        assertTrue("Clearing downloads touched the paper side", papers.confirmDownloadCalls.isEmpty())
+    }
+
     private fun repositoryConfirming(
         outcome: RepositoryResult<DownloadAvailability>,
     ): FakePaperDetailRepository = FakePaperDetailRepository().apply {
@@ -194,6 +215,14 @@ class DownloadsRepositoryImplTest {
         ): RepositoryResult<DownloadRecord> {
             retryCalls += downloadId to descriptor
             return RepositoryResult.Success(record(PaperId(downloadId), DownloadState.QUEUED))
+        }
+
+        var clearCompletedCalls = 0
+
+        override suspend fun clearCompleted(): RepositoryResult<Unit> {
+            clearCompletedCalls++
+            downloads.value = downloads.value.filterNot { it.state == DownloadState.COMPLETED }
+            return RepositoryResult.Success(Unit)
         }
 
         override suspend fun cancel(downloadId: String): RepositoryResult<Unit> {

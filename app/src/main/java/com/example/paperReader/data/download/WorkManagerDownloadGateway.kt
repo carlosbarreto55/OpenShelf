@@ -9,6 +9,7 @@ import com.example.paperReader.core.Clock
 import com.example.paperReader.data.local.dao.DownloadDao
 import com.example.paperReader.data.local.entity.DownloadEntity
 import com.example.paperReader.domain.model.ConfirmedPdfDescriptor
+import com.example.paperReader.domain.model.DownloadFailureReason
 import com.example.paperReader.domain.model.DownloadRecord
 import com.example.paperReader.domain.model.DownloadState
 import com.example.paperReader.domain.model.Paper
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.map
 class WorkManagerDownloadGateway @Inject constructor(
     private val workManager: WorkManager,
     private val downloadDao: DownloadDao,
+    private val fileStorage: DownloadFileStorage,
     private val clock: Clock,
 ) : DownloadGateway {
 
@@ -96,6 +98,17 @@ class WorkManagerDownloadGateway @Inject constructor(
         return RepositoryResult.Success(Unit)
     }
 
+    override suspend fun clearCompleted(): RepositoryResult<Unit> {
+        val completed = downloadDao.observeAll().first().filter { it.state == DownloadState.COMPLETED }
+        for (entity in completed) {
+            // File first: a delete that fails after the row is gone would strand the bytes with
+            // nothing left pointing at them.
+            fileStorage.delete(entity.id)
+            downloadDao.delete(entity.id)
+        }
+        return RepositoryResult.Success(Unit)
+    }
+
     /** Called once at startup for any backend-mode build: a download left QUEUED/RUNNING when the
      * process died has no live WorkManager entry to resume, so it is marked failed and retryable
      * rather than shown as progressing forever. */
@@ -110,7 +123,7 @@ class WorkManagerDownloadGateway @Inject constructor(
                 downloadDao.upsert(
                     entity.copy(
                         state = DownloadState.FAILED,
-                        errorMessage = "Interrupted before it could finish. Try again.",
+                        errorMessage = DownloadFailureReason.INTERRUPTED.message,
                         updatedAtEpochMillis = clock.nowEpochMillis(),
                     ),
                 )

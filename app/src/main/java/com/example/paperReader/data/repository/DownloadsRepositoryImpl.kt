@@ -54,6 +54,11 @@ class DownloadsRepositoryImpl @Inject constructor(
 
     override suspend fun cancelDownload(downloadId: String): RepositoryResult<Unit> = downloadGateway.cancel(downloadId)
 
+    /** Deletion goes through the gateway, which owns both the record and the file it wrote, so the
+     * two can never fall out of step. Nothing here touches saved papers — the offline-library
+     * capability requires a cleared download to leave the saved paper alone. */
+    override suspend fun clearCompletedDownloads(): RepositoryResult<Unit> = downloadGateway.clearCompleted()
+
     /**
      * Narrows the endpoint's answer to the one case that authorizes a transfer. Every other
      * outcome — no PDF, not found, offline, timeout, upstream unavailable, mismatched identity,

@@ -1,5 +1,6 @@
 package com.example.paperReader.data.download
 
+import com.example.paperReader.domain.model.DownloadFailureReason
 import java.io.File
 import java.io.IOException
 import javax.inject.Inject
@@ -24,7 +25,7 @@ class PdfDownloader @Inject constructor(
         }
 
         if (!PdfValidation.isValidPdf(response.statusCode, response.contentLength, response.body)) {
-            return DownloadOutcome.Failed("The server did not return a valid PDF.")
+            return DownloadOutcome.Failed(DownloadFailureReason.INVALID_PDF.message)
         }
 
         val file = fileStorage.write(downloadId, extension = "pdf", bytes = response.body)
