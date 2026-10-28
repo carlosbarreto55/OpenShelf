@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.paperReader.R
 import com.example.paperReader.domain.model.Paper
 import com.example.paperReader.domain.model.PaperId
+import com.example.paperReader.ui.components.DownloadFeedbackNotice
 import com.example.paperReader.ui.components.EmptyState
 import com.example.paperReader.ui.components.LoadingState
 import com.example.paperReader.ui.components.PaperCard
@@ -41,6 +42,7 @@ fun LibraryRoute(
         onToggleSave = viewModel::toggleSaved,
         onStartDownload = viewModel::startDownload,
         onReadOnline = uriHandler::openUri,
+        onDismissDownloadFeedback = viewModel::dismissDownloadFeedback,
         modifier = modifier,
     )
 }
@@ -53,6 +55,7 @@ fun LibraryScreen(
     onStartDownload: (Paper) -> Unit,
     onReadOnline: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onDismissDownloadFeedback: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -74,6 +77,12 @@ fun LibraryScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+
+        state.downloadFeedback?.let { feedback ->
+            item(key = "download-feedback") {
+                DownloadFeedbackNotice(feedback = feedback, onDismiss = onDismissDownloadFeedback)
             }
         }
 

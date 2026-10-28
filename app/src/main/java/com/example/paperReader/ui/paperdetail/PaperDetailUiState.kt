@@ -1,6 +1,7 @@
 package com.example.paperReader.ui.paperdetail
 
 import com.example.paperReader.domain.model.Paper
+import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.ui.components.DownloadFeedback
 
 /** The presentations required by the discovery/detail spec: loading, loaded (optionally stale
@@ -18,7 +19,9 @@ sealed interface PaperDetailContent {
      */
     data object NotFound : PaperDetailContent
 
-    data class Error(val message: String, val isRecoverable: Boolean) : PaperDetailContent
+    /** The classified cause, presented by [com.example.paperReader.ui.components.toPresentation]
+     * exactly as the discovery screen presents its own failures. */
+    data class Error(val error: RepositoryError) : PaperDetailContent
 }
 
 data class PaperDetailUiState(

@@ -3,6 +3,8 @@ package com.example.paperReader.ui.library
 import com.example.paperReader.domain.model.AccessResolution
 import com.example.paperReader.domain.model.SavedState
 import com.example.paperReader.domain.repository.FakeDownloadsRepository
+import com.example.paperReader.domain.repository.RepositoryError
+import com.example.paperReader.domain.repository.RepositoryResult
 import com.example.paperReader.domain.usecase.FakeLibraryRepository
 import com.example.paperReader.domain.usecase.ToggleSavedPaperUseCase
 import com.example.paperReader.domain.usecase.testPaper
@@ -92,5 +94,24 @@ class LibraryViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(listOf(paper), downloadsRepository.startDownloadCalls)
+    }
+
+    @Test
+    fun aFailedDownloadConfirmationIsSurfacedRatherThanDiscarded() = runTest(dispatcher) {
+        // Downloads started from a saved paper go through the same transfer-time confirmation as
+        // any other, so they can fail — and the library used to drop that outcome on the floor.
+        downloadsRepository.startResult = RepositoryResult.Failure(RepositoryError.NoDownloadableContent)
+
+        viewModel.startDownload(testPaper("W1", savedState = SavedState.SAVED))
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            RepositoryError.NoDownloadableContent,
+            viewModel.uiState.value.downloadFeedback?.error,
+        )
+
+        viewModel.dismissDownloadFeedback()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.downloadFeedback)
     }
 }

@@ -83,7 +83,7 @@ class PaperDetailViewModelTest {
 
         val content = viewModel.uiState.value.content
         assertTrue(content is PaperDetailContent.Error)
-        assertTrue((content as PaperDetailContent.Error).isRecoverable)
+        assertTrue((content as PaperDetailContent.Error).error.isRecoverable)
     }
 
     @Test
@@ -218,8 +218,8 @@ class PaperDetailViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
-            RepositoryError.NoDownloadableContent.userMessage,
-            viewModel.uiState.value.downloadFeedback?.message,
+            RepositoryError.NoDownloadableContent,
+            viewModel.uiState.value.downloadFeedback?.error,
         )
 
         viewModel.dismissDownloadFeedback()

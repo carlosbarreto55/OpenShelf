@@ -34,6 +34,7 @@ import com.example.paperReader.ui.components.AccessActionRow
 import com.example.paperReader.ui.components.AccessibleIconButton
 import com.example.paperReader.ui.components.DownloadFeedbackNotice
 import com.example.paperReader.ui.components.EmptyState
+import com.example.paperReader.ui.components.ErrorRoute
 import com.example.paperReader.ui.components.LoadingState
 import com.example.paperReader.ui.components.MetadataPill
 import com.example.paperReader.ui.components.RecoverableErrorState
@@ -45,6 +46,7 @@ import com.example.paperReader.ui.theme.spacing
 @Composable
 fun PaperDetailRoute(
     onBack: () -> Unit,
+    onNavigateTo: (ErrorRoute) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PaperDetailViewModel = hiltViewModel(),
 ) {
@@ -58,6 +60,7 @@ fun PaperDetailRoute(
         onDownloadPdf = { viewModel.startDownload() },
         onReadOnline = uriHandler::openUri,
         onDismissDownloadFeedback = viewModel::dismissDownloadFeedback,
+        onNavigateTo = onNavigateTo,
         modifier = modifier,
     )
 }
@@ -73,6 +76,8 @@ fun PaperDetailScreen(
     onReadOnline: (String) -> Unit,
     modifier: Modifier = Modifier,
     onDismissDownloadFeedback: () -> Unit = {},
+    /** Null where there is no navigation to offer; the secondary route is then not rendered. */
+    onNavigateTo: ((ErrorRoute) -> Unit)? = null,
 ) {
     Scaffold(
         modifier = modifier,
@@ -114,9 +119,10 @@ fun PaperDetailScreen(
                     )
 
                     is PaperDetailContent.Error -> RecoverableErrorState(
-                        message = content.message,
+                        error = content.error,
                         onRetry = onRetry,
                         modifier = Modifier.align(Alignment.Center),
+                        onNavigateTo = onNavigateTo,
                     )
 
                     is PaperDetailContent.Loaded -> PaperDetailBody(
