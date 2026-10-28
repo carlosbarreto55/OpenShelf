@@ -225,6 +225,11 @@ Retrofit, DAOs, or download APIs directly.
   record leaves the list instead of becoming a group, and an empty group is never emitted, so no
   heading can stand over nothing. "Clear completed" removes the record and its managed file
   together, through the gateway that owns both.
+- **Tab switches do not animate.** The `NavHost` in `ui/navigation/PaperReaderApp.kt` gives
+  top-level destinations no transition, and hides an outgoing tab with `fadeOut(snap())` because
+  navigation keeps it composed for a frame or two even then. Only the push to paper detail and the
+  way back slide, and with no fade, since detail's opaque surface covers the screen beneath. A
+  crossfade between tabs overlaps two screens' text; `MainActivityTest` bounds the overlap.
 - **No OpenAlex key or direct OpenAlex call.** The client talks only to the PaperReader backend.
   Two Gradle checks enforce this on sources and packaged artifacts.
 - **Transfer-time descriptor confirmation.** Every initial *and* retried download calls
