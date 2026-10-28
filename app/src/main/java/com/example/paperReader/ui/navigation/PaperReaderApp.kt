@@ -1,6 +1,5 @@
 package com.example.paperReader.ui.navigation
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -11,7 +10,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -26,22 +24,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
 import com.example.paperReader.R
-import com.example.paperReader.core.config.BackendConfiguration
-import com.example.paperReader.core.config.BackendMode
 import com.example.paperReader.domain.model.PaperId
-import com.example.paperReader.ui.components.DemoDataNotice
+import com.example.paperReader.ui.components.ErrorRoute
 import com.example.paperReader.ui.downloads.DownloadsRoute
 import com.example.paperReader.ui.library.LibraryRoute
 import com.example.paperReader.ui.paperdetail.PaperDetailRoute
 import com.example.paperReader.ui.search.SearchRoute
-import com.example.paperReader.ui.theme.spacing
 
 @Composable
 fun PaperReaderApp(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val isDemoData = remember { BackendConfiguration.fromBuildConfig().mode == BackendMode.FAKE }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -76,41 +70,59 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
             }
         },
     ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding)) {
-            if (isDemoData) {
-                DemoDataNotice(
-                    message = stringResource(R.string.demo_data_notice),
-                    modifier = Modifier.padding(MaterialTheme.spacing.compact),
+        // The second route an error surface offers. Routed like a bottom-bar tap (single top,
+        // state restored) so "open your library" from a failed search lands on the same Library the
+        // user would otherwise reach, rather than stacking a second copy of it.
+        val navigateToErrorRoute: (ErrorRoute) -> Unit = { route ->
+            navController.navigate(route.destination(), navOptions {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            })
+        }
+
+        // No demo notice here: disclosing placeholder data is owed *once*, not as permanent
+        // chrome on every destination. The search screen carries the dismissible explanation and
+        // the indicator that reopens it; a simulated download carries its own disclaimer.
+        NavHost(
+            navController = navController,
+            startDestination = PaperReaderRoute.Search,
+            modifier = Modifier.padding(innerPadding),
+        ) {
+            composable<PaperReaderRoute.Search> {
+                SearchRoute(
+                    onOpenPaper = { paperId: PaperId ->
+                        navController.navigate(PaperReaderRoute.PaperDetail(paperId.value))
+                    },
+                    onNavigateTo = navigateToErrorRoute,
                 )
             }
-            NavHost(
-                navController = navController,
-                startDestination = PaperReaderRoute.Search,
-                modifier = Modifier.weight(1f),
-            ) {
-                composable<PaperReaderRoute.Search> {
-                    SearchRoute(
-                        onOpenPaper = { paperId: PaperId ->
-                            navController.navigate(PaperReaderRoute.PaperDetail(paperId.value))
-                        },
-                    )
-                }
-                composable<PaperReaderRoute.Library> {
-                    LibraryRoute(
-                        onOpenPaper = { paperId: PaperId ->
-                            navController.navigate(PaperReaderRoute.PaperDetail(paperId.value))
-                        },
-                    )
-                }
-                composable<PaperReaderRoute.Downloads> {
-                    DownloadsRoute()
-                }
-                composable<PaperReaderRoute.PaperDetail> {
-                    PaperDetailRoute(onBack = { navController.popBackStack() })
-                }
+            composable<PaperReaderRoute.Library> {
+                LibraryRoute(
+                    onOpenPaper = { paperId: PaperId ->
+                        navController.navigate(PaperReaderRoute.PaperDetail(paperId.value))
+                    },
+                )
+            }
+            composable<PaperReaderRoute.Downloads> {
+                DownloadsRoute()
+            }
+            composable<PaperReaderRoute.PaperDetail> {
+                PaperDetailRoute(
+                    onBack = { navController.popBackStack() },
+                    onNavigateTo = navigateToErrorRoute,
+                )
             }
         }
     }
+}
+
+/** The one place an [ErrorRoute] becomes a destination, so nothing below navigation needs to know
+ * the graph exists. */
+private fun ErrorRoute.destination(): PaperReaderRoute = when (this) {
+    ErrorRoute.LIBRARY -> PaperReaderRoute.Library
+    ErrorRoute.SEARCH -> PaperReaderRoute.Search
+    ErrorRoute.DOWNLOADS -> PaperReaderRoute.Downloads
 }
 
 private fun NavDestination?.isSelected(route: PaperReaderRoute): Boolean {

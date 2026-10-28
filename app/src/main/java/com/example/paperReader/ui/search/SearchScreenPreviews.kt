@@ -12,6 +12,7 @@ import com.example.paperReader.domain.model.PaperId
 import com.example.paperReader.domain.model.PaperType
 import com.example.paperReader.domain.model.SortOrder
 import com.example.paperReader.domain.model.Topic
+import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.ui.theme.PaperReaderTheme
 
 private val previewPapers = listOf(
@@ -62,6 +63,7 @@ private fun previewState(content: SearchContent) = SearchUiState(
     filters = PaperFilters(),
     sortOrder = SortOrder.RELEVANCE,
     content = content,
+    demoDisclosure = DemoDisclosureState.IndicatorOnly,
 )
 
 @Preview(name = "Light", showBackground = true)
@@ -114,7 +116,7 @@ private fun SearchScreenEmptyPreview() {
 private fun SearchScreenErrorPreview() {
     PaperReaderTheme {
         SearchScreen(
-            state = previewState(SearchContent.Error(message = "You're offline. Check your connection or try cached results.", isRecoverable = true)),
+            state = previewState(SearchContent.Error(RepositoryError.Offline)),
             onQueryTextChanged = {},
             onFiltersChanged = {},
             onClearFilters = {},
@@ -130,11 +132,12 @@ private fun SearchScreenErrorPreview() {
 }
 
 @Preview(name = "Initial", showBackground = true)
+@Preview(name = "Initial, dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun SearchScreenInitialPreview() {
     PaperReaderTheme {
         SearchScreen(
-            state = SearchUiState(recentQueries = listOf("machine learning", "robotics")),
+            state = SearchUiState(recentQueries = listOf("robotics")),
             onQueryTextChanged = {},
             onFiltersChanged = {},
             onClearFilters = {},

@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -31,6 +32,8 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.example.paperReader.R
+import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.ui.theme.spacing
 
 @Composable
@@ -90,11 +93,64 @@ fun EmptyState(
     }
 }
 
+/**
+ * A failure presented by its classified cause (design.md decision 1): its own headline, its own
+ * safe explanation, a retry *only* when the taxonomy says retrying can succeed, and a second route
+ * that still works under this particular failure — offline, for instance, offers the Room-backed
+ * library rather than a retry that cannot work.
+ *
+ * [onNavigateTo] is null on surfaces that have no navigation to offer (previews, screenshots);
+ * the secondary route is then simply not rendered rather than rendered inert.
+ */
 @Composable
 fun RecoverableErrorState(
-    message: String,
+    error: RepositoryError,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateTo: ((ErrorRoute) -> Unit)? = null,
+) {
+    val presentation = error.toPresentation()
+    ErrorSurface(
+        headline = stringResource(presentation.headlineRes),
+        message = presentation.explanation,
+        modifier = modifier,
+    ) {
+        if (presentation.canRetry) {
+            AccessibleButton(label = stringResource(R.string.error_action_retry), onClick = onRetry)
+        }
+        if (onNavigateTo != null) {
+            val route = presentation.secondaryRoute
+            TextButton(onClick = { onNavigateTo(route) }) {
+                Text(stringResource(route.labelRes))
+            }
+        }
+    }
+}
+
+/**
+ * The same error surface for a condition that is not a [RepositoryError] — a device fact such as
+ * "no app here can open this file". Kept separate so nothing is tempted to invent a taxonomy
+ * variant for something the repository never produced.
+ */
+@Composable
+fun NoticeState(
+    headline: String,
+    message: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ErrorSurface(headline = headline, message = message, modifier = modifier) {
+        AccessibleButton(label = actionLabel, onClick = onAction)
+    }
+}
+
+@Composable
+private fun ErrorSurface(
+    headline: String,
+    message: String,
+    modifier: Modifier = Modifier,
+    actions: @Composable () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -111,7 +167,7 @@ fun RecoverableErrorState(
             tint = MaterialTheme.colorScheme.error,
         )
         Text(
-            text = "Something went wrong",
+            text = headline,
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.semantics { heading() },
         )
@@ -120,7 +176,7 @@ fun RecoverableErrorState(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        AccessibleButton(label = "Try again", onClick = onRetry)
+        actions()
     }
 }
 
@@ -160,37 +216,6 @@ fun StaleDataNotice(
                 )
                 Text("Refresh")
             }
-        }
-    }
-}
-
-@Composable
-fun DemoDataNotice(
-    modifier: Modifier = Modifier,
-    message: String = "Demo data — no live backend connected yet.",
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { liveRegion = LiveRegionMode.Polite },
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        shape = MaterialTheme.shapes.medium,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = MaterialTheme.spacing.compact, vertical = MaterialTheme.spacing.control),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.control),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Info,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
         }
     }
 }

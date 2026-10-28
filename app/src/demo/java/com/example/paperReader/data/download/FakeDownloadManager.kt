@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -107,6 +108,15 @@ class FakeDownloadManager @Inject constructor(
                     updatedAtEpochMillis = clock.nowEpochMillis(),
                 ),
             )
+        }
+        return RepositoryResult.Success(Unit)
+    }
+
+    override suspend fun clearCompleted(): RepositoryResult<Unit> {
+        val completed = downloadDao.observeAll().first().filter { it.state == DownloadState.COMPLETED }
+        for (entity in completed) {
+            fileStorage.delete(entity.id)
+            downloadDao.delete(entity.id)
         }
         return RepositoryResult.Success(Unit)
     }

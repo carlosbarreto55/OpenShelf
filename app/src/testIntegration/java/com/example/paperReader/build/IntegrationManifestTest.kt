@@ -6,20 +6,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * AND-001/AND-003: the integration variant is the only one that may reach the network, and the
- * cleartext exception exists only in its debug build.
+ * AND-003: integration is the one flavor with a loopback development story, and the cleartext
+ * exception that story needs exists only in its debug build. The Internet-permission half of this
+ * is shared with production and lives in `HttpFlavorManifestTest`.
  */
 class IntegrationManifestTest {
 
     private val merged = MergedManifest.forVariantUnderTest()
-
-    @Test
-    fun integrationMergedManifestRequestsInternet() {
-        assertTrue(
-            "Retrofit and external PDF transfers cannot run without it",
-            merged.contains("android.permission.INTERNET"),
-        )
-    }
 
     @Test
     fun onlyTheDebugBuildCarriesTheCleartextNetworkSecurityConfig() {

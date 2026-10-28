@@ -3,6 +3,7 @@ package com.example.paperReader.ui.downloads
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.paperReader.domain.model.DownloadRecord
+import com.example.paperReader.domain.model.DownloadState
 import com.example.paperReader.domain.repository.DownloadsRepository
 import com.example.paperReader.domain.repository.RepositoryResult
 import com.example.paperReader.ui.components.DownloadFeedback
@@ -35,12 +36,25 @@ class DownloadsViewModel @Inject constructor(
         noViewerAvailableForDownloadId,
         downloadFeedback,
     ) { downloads, noViewerId, feedback ->
+        val sections = sectionsOf(downloads)
         DownloadsUiState(
-            content = if (downloads.isEmpty()) DownloadsContent.Empty else DownloadsContent.Loaded(downloads),
+            content = if (sections.isEmpty()) DownloadsContent.Empty else DownloadsContent.Loaded(sections),
             noViewerAvailableForDownloadId = noViewerId,
             downloadFeedback = feedback,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), DownloadsUiState())
+
+    fun clearCompleted() {
+        viewModelScope.launch {
+            downloadFeedback.value = null
+            // The repository owns the record and the file together; a record without its file (or
+            // the reverse) is the leak this control exists to prevent.
+            when (val result = downloadsRepository.clearCompletedDownloads()) {
+                is RepositoryResult.Success -> Unit
+                is RepositoryResult.Failure -> downloadFeedback.value = DownloadFeedback.from(result.error)
+            }
+        }
+    }
 
     fun retry(downloadId: String) {
         viewModelScope.launch {
@@ -78,5 +92,31 @@ class DownloadsViewModel @Inject constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
+
+        /**
+         * Ordering is decided here rather than inherited from the DAO, so it is deterministic and
+         * testable: groups come out in [DownloadGroup] declaration order, and within a group the
+         * most recently touched record comes first. Canceled records are dropped entirely.
+         */
+        fun sectionsOf(downloads: List<DownloadRecord>): List<DownloadSection> {
+            val grouped = downloads
+                .mapNotNull { record -> record.state.group()?.let { it to record } }
+                .groupBy({ it.first }, { it.second })
+
+            return DownloadGroup.entries.mapNotNull { group ->
+                grouped[group]
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.sortedByDescending { it.updatedAtEpochMillis }
+                    ?.let { DownloadSection(group, it) }
+            }
+        }
+
+        fun DownloadState.group(): DownloadGroup? = when (this) {
+            DownloadState.QUEUED, DownloadState.RUNNING -> DownloadGroup.IN_PROGRESS
+            DownloadState.FAILED -> DownloadGroup.NEEDS_ATTENTION
+            DownloadState.COMPLETED -> DownloadGroup.ON_THIS_DEVICE
+            // Not a group: the user already decided, so the record leaves the list.
+            DownloadState.CANCELED -> null
+        }
     }
 }

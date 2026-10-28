@@ -5,25 +5,25 @@
     <string name="nav_library">Library</string>
     <string name="nav_downloads">Downloads</string>
     <string name="search_hero_title">Find the work behind the idea.</string>
-    <string name="search_hero_description">Search across papers, preprints, reviews and repositories.</string>
     <string name="search_field_label">Search papers</string>
     <string name="search_field_placeholder">Try a topic like AI harness</string>
     <string name="filter_all">All</string>
     <string name="filter_open_access">Open access</string>
     <string name="filter_pdf_available">PDF available</string>
-    <string name="search_shell_title">Your research space is ready.</string>
-    <string name="search_shell_description">Search, save, and revisit papers from one account-free workspace.</string>
     <string name="search_sort_label">Sort by %1$s</string>
     <string name="search_sort_relevance">Relevance</string>
     <string name="search_sort_newest">Newest</string>
     <string name="search_sort_citations">Most cited</string>
     <string name="search_loading_message">Searching papers</string>
     <string name="search_empty_title">No results for \"%1$s\"</string>
-    <string name="search_empty_description">Try a different topic or adjust your filters.</string>
-    <string name="search_clear_filters">Clear filters</string>
     <string name="search_append_error">Couldn\'t load more results</string>
     <string name="search_append_retry">Retry</string>
     <string name="search_recent_label">Recent</string>
+    <!-- Starting points, not recommendations: no counts and no ordering claim (design.md 5). -->
+    <string name="search_suggestions_label">Start with a topic</string>
+    <string name="search_filters_label">Filters</string>
+    <string name="search_filters_expand">Show more filters</string>
+    <string name="search_filters_collapse">Hide more filters</string>
     <!-- "Showing N" is a count of what is on screen; it never claims to be the matched total. -->
     <plurals name="search_result_count">
         <item quantity="one">Showing %1$d paper for \"%2$s\"</item>
@@ -33,6 +33,11 @@
     <plurals name="search_result_count_of_total">
         <item quantity="one">Showing %1$d of %2$d papers for \"%3$s\"</item>
         <item quantity="other">Showing %1$d of %2$d papers for \"%3$s\"</item>
+    </plurals>
+    <!-- A failed refresh can only show the locally saved subset, not the full matched total. -->
+    <plurals name="search_result_count_cached">
+        <item quantity="one">Showing %1$d saved paper for \"%2$s\"</item>
+        <item quantity="other">Showing %1$d saved papers for \"%2$s\"</item>
     </plurals>
     <string name="library_title">Library</string>
     <string name="library_description">Keep important papers close, even when you are offline.</string>
@@ -50,9 +55,16 @@
     <string name="downloads_action_cancel">Cancel</string>
     <string name="downloads_action_retry">Retry</string>
     <string name="downloads_action_open">Open</string>
+    <string name="downloads_no_viewer_title">Can\'t open this file</string>
     <string name="downloads_no_viewer_message">No app on this device can open this file.</string>
     <string name="downloads_demo_placeholder_notice">Demo placeholder — not a real PDF.</string>
-    <string name="demo_data_notice">Demo data — no live backend connected yet.</string>
+    <!-- Demo disclosure. The explanation is dismissible; the indicator that reopens it is not,
+         and neither is downloads_demo_placeholder_notice above. -->
+    <string name="demo_indicator_label">Demo data</string>
+    <string name="demo_indicator_action">Demo data — what this means</string>
+    <string name="demo_explanation_title">You\'re looking at demo data</string>
+    <string name="demo_explanation_description">This build isn\'t connected to a live backend. Every paper, author and download here is a placeholder, not a real record.</string>
+    <string name="demo_explanation_dismiss">Got it</string>
     <string name="search_more_pages_title">Still looking</string>
     <string name="search_more_pages_description">The service has more pages to check for this search. Continue to keep looking.</string>
     <string name="search_more_pages_action">Keep looking</string>
@@ -68,4 +80,40 @@
     <string name="filter_type_preprint">Preprint</string>
     <string name="filter_type_book_chapter">Book chapter</string>
     <string name="filter_type_dataset">Dataset</string>
+
+    <!-- Error presentation: one headline per RepositoryError cause. The explanation shown beneath
+         each is always the error's own safe userMessage, never a payload, URL or stack trace. -->
+    <string name="error_headline_offline">You\'re offline</string>
+    <string name="error_headline_timeout">That took too long</string>
+    <string name="error_headline_not_found">We couldn\'t find that paper</string>
+    <string name="error_headline_no_downloadable_content">No PDF available</string>
+    <string name="error_headline_service_unavailable">The service is unavailable</string>
+    <string name="error_headline_invalid_request">We couldn\'t run that request</string>
+    <string name="error_headline_http">The service didn\'t answer</string>
+    <string name="error_headline_contract">We couldn\'t read that answer</string>
+    <string name="error_headline_access_validation">Access couldn\'t be verified</string>
+    <string name="error_headline_unexpected">Something went wrong</string>
+    <string name="error_action_retry">Try again</string>
+    <string name="error_route_library">Open your library</string>
+    <string name="error_route_search">Start a new search</string>
+    <string name="error_route_downloads">Open downloads</string>
+    <string name="error_notice_dismiss">Dismiss</string>
+    <!-- Skeleton loading: one announcement for the whole placeholder list, never one per card. -->
+    <string name="search_skeleton_announcement">Loading results</string>
+    <!-- Filter-aware empty state -->
+    <string name="search_empty_description_filtered">No papers match this search with the filters below. Remove one, or clear them all.</string>
+    <string name="search_empty_description_unfiltered">Try a different topic or check the spelling.</string>
+    <string name="search_clear_all_filters">Clear all filters</string>
+    <string name="search_remove_filter">Remove filter %1$s</string>
+    <string name="filter_year_active">Year %1$d</string>
+    <string name="filter_topic_active">Topic: %1$s</string>
+    <!-- Downloads grouping -->
+    <string name="downloads_group_in_progress">In progress</string>
+    <string name="downloads_group_needs_attention">Needs attention</string>
+    <string name="downloads_group_on_this_device">On this device</string>
+    <string name="downloads_failure_heading_invalid_pdf">Not a valid PDF</string>
+    <string name="downloads_failure_heading_interrupted">Interrupted</string>
+    <string name="downloads_failure_heading_generic">Download failed</string>
+    <string name="downloads_failure_no_partial_file">No partial file was kept.</string>
+    <string name="downloads_action_clear_completed">Clear completed</string>
 </resources>

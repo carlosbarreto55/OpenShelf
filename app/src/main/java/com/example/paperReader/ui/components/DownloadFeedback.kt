@@ -10,27 +10,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import com.example.paperReader.R
 import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.ui.theme.spacing
 
 /**
- * Why a download could not start or resume, in words safe to show.
+ * Why a download could not start or resume, carried as the classified cause so this surface names
+ * the failure the same way every other one does (design.md decision 1).
  *
- * Built only from [RepositoryError.userMessage], which never contains a descriptor URL, an endpoint
- * address, or a server response body — the transfer-time confirmation failures this reports would
- * otherwise be the easiest place for one to leak into presentation state.
+ * Everything shown comes from [toPresentation], whose explanation is only ever
+ * [RepositoryError.userMessage] — never a descriptor URL, an endpoint address, or a server response
+ * body. The transfer-time confirmation failures reported here would otherwise be the easiest place
+ * for one to leak into presentation state.
  */
-data class DownloadFeedback(
-    val message: String,
-    val canRetry: Boolean,
-) {
+data class DownloadFeedback(val error: RepositoryError) {
     companion object {
-        fun from(error: RepositoryError): DownloadFeedback {
-            return DownloadFeedback(message = error.userMessage, canRetry = error.isRecoverable)
-        }
+        fun from(error: RepositoryError): DownloadFeedback = DownloadFeedback(error)
     }
 }
 
@@ -51,16 +50,25 @@ fun DownloadFeedbackNotice(
             .semantics { liveRegion = LiveRegionMode.Assertive },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
     ) {
+        val presentation = feedback.error.toPresentation()
         Column(
             modifier = Modifier.padding(MaterialTheme.spacing.section),
             verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.control),
         ) {
             Text(
-                text = feedback.message,
+                text = stringResource(presentation.headlineRes),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Text(
+                text = presentation.explanation,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
-            AccessibleButton(label = "Dismiss", onClick = onDismiss)
+            AccessibleButton(
+                label = stringResource(R.string.error_notice_dismiss),
+                onClick = onDismiss,
+            )
         }
     }
 }

@@ -18,4 +18,8 @@ interface DownloadsRepository {
     suspend fun retryDownload(downloadId: String): RepositoryResult<DownloadRecord>
 
     suspend fun cancelDownload(downloadId: String): RepositoryResult<Unit>
+
+    /** Removes completed records and their managed local files together. Leaves in-progress and
+     * failed records, and saved-paper state, exactly as they were. */
+    suspend fun clearCompletedDownloads(): RepositoryResult<Unit>
 }

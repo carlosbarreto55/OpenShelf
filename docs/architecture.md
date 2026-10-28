@@ -28,7 +28,7 @@ data/
                 RequestMappers (domain -> request DTO), RemoteJson (shared kotlinx.serialization
                 config), the PaperRemoteDataSource interface, and HttpPaperRemoteDataSource.
                 FakePaperRemoteDataSource lives in src/demo/ instead, so it is absent from an
-                integration build entirely. Both are real implementations; one scenario matrix
+                HTTP build entirely. Both are real implementations; one scenario matrix
                 asserts they produce identical repository-level outcomes.
   local/        Room entities/DAOs/database/migrations, LocalMappers (Room row -> domain, which
                 re-validates access state on every read — see "Room as source of truth" below).
@@ -112,30 +112,42 @@ live integration.
 The backend mode is fixed by the product flavor, never inferred at runtime from whether
 configuration happens to be complete. There is no `paperReaderRemoteMode` property any more.
 
-| | `demo` | `integration` |
-|---|---|---|
-| `BackendMode` | `FAKE`, hardcoded in the flavor's BuildConfig | `HTTP`, hardcoded |
-| Remote source | `FakePaperRemoteDataSource` | `HttpPaperRemoteDataSource` |
-| Download gateway | `FakeDownloadManager` | `WorkManagerDownloadGateway` |
-| Where those live | `src/demo/` only | `src/main/`, bound by `src/integration/` |
-| Bound by | `DemoBackendModule` | `IntegrationBackendModule` |
-| Backend URL | not used | required: `-PpaperReaderBackendBaseUrl=<url>` |
-| `INTERNET` permission | absent | declared in `src/integration/AndroidManifest.xml` |
-| Cleartext | none | `integrationDebug` only, and only for `10.0.2.2`, `localhost`, `127.0.0.1` |
+| | `demo` | `integration` | `production` |
+|---|---|---|---|
+| `BackendMode` | `FAKE`, hardcoded in the flavor's BuildConfig | `HTTP`, hardcoded | `HTTP`, hardcoded |
+| Remote source | `FakePaperRemoteDataSource` | `HttpPaperRemoteDataSource` | `HttpPaperRemoteDataSource` |
+| Download gateway | `FakeDownloadManager` | `WorkManagerDownloadGateway` | `WorkManagerDownloadGateway` |
+| Where those live | `src/demo/` only | `src/main/`, bound by `src/http/` | `src/main/`, bound by `src/http/` |
+| Bound by | `DemoBackendModule` | `HttpBackendModule` | `HttpBackendModule` |
+| Backend URL | not used | `-PpaperReaderBackendBaseUrl=<url>`, else the deployed one | `https://barretolab.tech/`, a build constant |
+| `INTERNET` permission | absent | declared in `src/http/AndroidManifest.xml` | declared in `src/http/AndroidManifest.xml` |
+| Cleartext | none | `integrationDebug` only, and only for `10.0.2.2`, `localhost`, `127.0.0.1` | none, in either build type |
+| Release signing | not required | not required | required; assembly fails without it |
 
 Selection is **compile-time, not runtime**. `BackendModule` in `src/main` provides only
 `BackendConfiguration`; each flavor's own Hilt module binds its implementations. The demo fakes are
-therefore not merely unreachable in an integration build — they are not on its classpath at all, and
-`IntegrationBackendSelectionTest` asserts `Class.forName` fails for each of them. This replaced an
+therefore not merely unreachable in an HTTP build — they are not on its classpath at all, and
+`HttpBackendSelectionTest` asserts `Class.forName` fails for each of them. This replaced an
 earlier `when (configuration.mode)` switch whose two branches both shipped in every APK.
+
+`integration` and `production` are the same build with two different answers to one question. They
+compile one shared source set (`src/http/`) holding the Hilt module and the `INTERNET` declaration,
+one shared unit-test set (`src/testHttp/`), and one shared instrumentation set
+(`src/androidTestHttp/`). What differs is where the address comes from: `integration` reads a
+property so it can be aimed at a local server, `production` reads nothing at all. That asymmetry is
+the point — `paperReaderBackendBaseUrl` is conventionally set machine-globally to a loopback address,
+so a production build that consulted it could silently ship pointing at a developer's laptop.
+`ProductionFlavorConfigurationTest` asserts the literal address, its scheme, and that its host is not
+a loopback development host, precisely so that regression cannot pass unnoticed.
 
 `BackendConfiguration.resolve` is the single validation point. A missing URL, an unparseable URL, a
 cleartext URL in a release build, or cleartext to a host outside the loopback allowlist each
-produce a typed `BackendConfigurationProblem` — the integration flavor never substitutes fake data
-or a simulated download gateway. The same rule is mirrored in the build script so a misconfigured
-integration APK fails at assembly rather than at first launch.
+produce a typed `BackendConfigurationProblem` — an HTTP flavor never substitutes fake data or a
+simulated download gateway. The same rule is mirrored in the build script so a misconfigured APK
+fails at assembly rather than at first launch, with `production` additionally requiring HTTPS in its
+debug build since it has no loopback allowance to fall back on.
 
-Rolling back a live integration means building `demo` and withholding the integration variant, not
+Rolling back a live deployment means building `demo` and withholding the HTTP variants, not
 downgrading the database: Room changes are forward-migrated and hold user-owned saved and download
 data.
 

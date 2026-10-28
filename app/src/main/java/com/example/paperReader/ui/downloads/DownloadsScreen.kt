@@ -31,12 +31,13 @@ import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.paperReader.R
+import com.example.paperReader.domain.model.DownloadFailureReason
 import com.example.paperReader.domain.model.DownloadRecord
 import com.example.paperReader.domain.model.DownloadState
 import com.example.paperReader.ui.components.DownloadFeedbackNotice
 import com.example.paperReader.ui.components.EmptyState
 import com.example.paperReader.ui.components.LoadingState
-import com.example.paperReader.ui.components.RecoverableErrorState
+import com.example.paperReader.ui.components.NoticeState
 import com.example.paperReader.ui.theme.spacing
 
 @Composable
@@ -67,6 +68,7 @@ fun DownloadsRoute(
         onCancel = viewModel::cancel,
         onOpen = viewModel::open,
         onDismissNoViewerNotice = viewModel::dismissNoViewerNotice,
+        onClearCompleted = viewModel::clearCompleted,
         onDismissDownloadFeedback = viewModel::dismissDownloadFeedback,
         modifier = modifier,
     )
@@ -80,6 +82,7 @@ fun DownloadsScreen(
     onOpen: (DownloadRecord) -> Unit,
     onDismissNoViewerNotice: () -> Unit,
     modifier: Modifier = Modifier,
+    onClearCompleted: () -> Unit = {},
     onDismissDownloadFeedback: () -> Unit = {},
 ) {
     LazyColumn(
@@ -99,6 +102,13 @@ fun DownloadsScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Offered only when there is something completed to clear, so the control never
+                // appears as an action with nothing to act on.
+                if (state.hasCompletedDownloads) {
+                    TextButton(onClick = onClearCompleted, modifier = Modifier.align(Alignment.End)) {
+                        Text(stringResource(R.string.downloads_action_clear_completed))
+                    }
+                }
             }
         }
 
@@ -110,9 +120,13 @@ fun DownloadsScreen(
 
         if (state.noViewerAvailableForDownloadId != null) {
             item(key = "no-viewer") {
-                RecoverableErrorState(
+                // A fact about the device, not a repository failure, so it does not borrow a
+                // cause from the error taxonomy.
+                NoticeState(
+                    headline = stringResource(R.string.downloads_no_viewer_title),
                     message = stringResource(R.string.downloads_no_viewer_message),
-                    onRetry = onDismissNoViewerNotice,
+                    actionLabel = stringResource(R.string.error_notice_dismiss),
+                    onAction = onDismissNoViewerNotice,
                 )
             }
         }
@@ -128,8 +142,24 @@ fun DownloadsScreen(
                 )
             }
 
-            is DownloadsContent.Loaded -> items(content.downloads, key = { it.id }) { record ->
-                DownloadRow(record = record, onRetry = { onRetry(record.id) }, onCancel = { onCancel(record.id) }, onOpen = { onOpen(record) })
+            // Only groups that actually have records are emitted, so no heading ever stands over
+            // an empty section.
+            is DownloadsContent.Loaded -> content.sections.forEach { section ->
+                item(key = "heading-" + section.group.name) {
+                    Text(
+                        text = stringResource(section.group.headingRes),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                }
+                items(section.records, key = { it.id }) { record ->
+                    DownloadRow(
+                        record = record,
+                        onRetry = { onRetry(record.id) },
+                        onCancel = { onCancel(record.id) },
+                        onOpen = { onOpen(record) },
+                    )
+                }
             }
         }
     }
@@ -179,7 +209,9 @@ private fun DownloadRow(
                 )
             }
 
-            if (record.errorMessage != null) {
+            if (record.state == DownloadState.FAILED) {
+                DownloadFailureText(errorMessage = record.errorMessage)
+            } else if (record.errorMessage != null) {
                 Text(
                     text = record.errorMessage,
                     style = MaterialTheme.typography.bodyMedium,
@@ -207,6 +239,45 @@ private fun DownloadRow(
                 }
             }
         }
+    }
+}
+
+/**
+ * A failure named by its cause, followed by the record's own safe message, followed by the fact the
+ * user actually needs: nothing half-written was left behind. That last line is unconditional
+ * because it is unconditionally true — bytes are only ever written after validation succeeds, and a
+ * canceled transfer deletes whatever it had.
+ */
+@Composable
+private fun DownloadFailureText(errorMessage: String?, modifier: Modifier = Modifier) {
+    val headingRes = when (DownloadFailureReason.fromMessage(errorMessage)) {
+        DownloadFailureReason.INVALID_PDF -> R.string.downloads_failure_heading_invalid_pdf
+        DownloadFailureReason.INTERRUPTED -> R.string.downloads_failure_heading_interrupted
+        // A transport failure carries the underlying I/O message; there is no cause to name beyond
+        // "it did not finish", and inventing one would be a claim we cannot support.
+        null -> R.string.downloads_failure_heading_generic
+    }
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.control),
+    ) {
+        Text(
+            text = stringResource(headingRes),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        Text(
+            text = stringResource(R.string.downloads_failure_no_partial_file),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

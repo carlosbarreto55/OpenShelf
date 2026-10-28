@@ -24,4 +24,12 @@ interface DownloadGateway {
     ): RepositoryResult<DownloadRecord>
 
     suspend fun cancel(downloadId: String): RepositoryResult<Unit>
+
+    /**
+     * Removes every completed record together with the file it manages. Both or neither: a record
+     * without its file, or a file without its record, is exactly the leak this exists to prevent.
+     * In-progress and failed records are left untouched, as is saved-paper state, which this
+     * gateway does not own.
+     */
+    suspend fun clearCompleted(): RepositoryResult<Unit>
 }

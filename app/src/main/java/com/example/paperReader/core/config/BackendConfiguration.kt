@@ -7,7 +7,8 @@ enum class BackendMode {
     /** Deterministic fixture data. The demo flavor's only mode; needs no backend and no network. */
     FAKE,
 
-    /** Live PaperReader backend over Retrofit. The integration flavor's only mode. */
+    /** Live PaperReader backend over Retrofit. The only mode of the integration and production
+     * flavors; they differ in where the base URL comes from, not in how it is used. */
     HTTP,
     ;
 
@@ -32,8 +33,8 @@ enum class BackendConfigurationProblem {
  * The resolved backend mode for the running build.
  *
  * The mode is fixed by the product flavor, never inferred from whether configuration happens to be
- * complete. An integration build with a missing or unusable base URL fails loudly instead of
- * substituting fixture data — see design.md decision 1 and TECHNICAL_DEBT.md AND-002.
+ * complete. An HTTP build with a missing or unusable base URL fails loudly instead of substituting
+ * fixture data — see design.md decision 1 and TECHNICAL_DEBT.md AND-002.
  */
 data class BackendConfiguration(
     val mode: BackendMode,
@@ -57,7 +58,7 @@ data class BackendConfiguration(
             isDebugBuild = BuildConfig.DEBUG,
         )
 
-        /** Throws when the build is misconfigured, so a broken integration build fails as soon as
+        /** Throws when the build is misconfigured, so a broken HTTP build fails as soon as
          * anything needs a backend rather than running against demo data. */
         fun fromBuildConfig(): BackendConfiguration {
             return when (val result = resultFromBuildConfig()) {
@@ -74,7 +75,7 @@ data class BackendConfiguration(
             val mode = BackendMode.parse(rawMode)
                 ?: return invalid(
                     BackendConfigurationProblem.UNKNOWN_MODE,
-                    "Unknown backend mode \"$rawMode\". Build the demo or integration flavor.",
+                    "Unknown backend mode \"$rawMode\". Build the demo, integration or production flavor.",
                 )
             if (mode == BackendMode.FAKE) {
                 return BackendConfigurationResult.Valid(BackendConfiguration(BackendMode.FAKE, baseUrl = null))
@@ -84,8 +85,8 @@ data class BackendConfiguration(
             if (baseUrl.isEmpty()) {
                 return invalid(
                     BackendConfigurationProblem.MISSING_BASE_URL,
-                    "The integration build has no PaperReader backend base URL. Pass " +
-                        "-PpaperReaderBackendBaseUrl=<url>; it never falls back to demo data.",
+                    "This build has no PaperReader backend base URL. Pass " +
+                        "-PpaperReaderBackendBaseUrl=<url>; an HTTP build never falls back to demo data.",
                 )
             }
 

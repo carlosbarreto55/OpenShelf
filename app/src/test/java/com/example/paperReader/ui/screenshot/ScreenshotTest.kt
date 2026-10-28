@@ -16,10 +16,12 @@ import com.example.paperReader.domain.model.Paper
 import com.example.paperReader.domain.model.PaperId
 import com.example.paperReader.domain.model.PaperType
 import com.example.paperReader.domain.model.Topic
+import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.ui.components.EmptyState
 import com.example.paperReader.ui.components.LoadingState
 import com.example.paperReader.ui.components.PaperCard
 import com.example.paperReader.ui.components.RecoverableErrorState
+import com.example.paperReader.ui.components.SkeletonPaperCardList
 import com.example.paperReader.ui.search.SearchContent
 import com.example.paperReader.ui.search.SearchScreen
 import com.example.paperReader.ui.search.SearchUiState
@@ -122,6 +124,19 @@ class ScreenshotTest {
     }
 
     @Test
+    fun skeletonLoadingState() {
+        // The search list's loading state, which holds the geometry of result cards rather than
+        // replacing the list with a spinner.
+        composeRule.setContent {
+            PaperReaderTheme {
+                FixedSize(width = 360, height = 480) { SkeletonPaperCardList() }
+            }
+        }
+
+        composeRule.onRoot().captureRoboImage("skeleton_loading_state.png")
+    }
+
+    @Test
     fun emptyState() {
         composeRule.setContent {
             PaperReaderTheme {
@@ -141,10 +156,11 @@ class ScreenshotTest {
     fun errorState() {
         composeRule.setContent {
             PaperReaderTheme {
-                FixedSize(width = 360, height = 220) {
+                FixedSize(width = 360, height = 300) {
                     RecoverableErrorState(
-                        message = "You're offline. Check your connection or try cached results.",
+                        error = RepositoryError.Offline,
                         onRetry = {},
+                        onNavigateTo = {},
                     )
                 }
             }

@@ -65,10 +65,17 @@ class DownloadsScreenTest {
         onCancel: (String) -> Unit = {},
         onOpen: (DownloadRecord) -> Unit = {},
     ) {
+        val group = when (record.state) {
+            DownloadState.QUEUED, DownloadState.RUNNING -> DownloadGroup.IN_PROGRESS
+            DownloadState.FAILED -> DownloadGroup.NEEDS_ATTENTION
+            else -> DownloadGroup.ON_THIS_DEVICE
+        }
         composeRule.setContent {
             PaperReaderTheme {
                 DownloadsScreen(
-                    state = DownloadsUiState(content = DownloadsContent.Loaded(listOf(record))),
+                    state = DownloadsUiState(
+                        content = DownloadsContent.Loaded(listOf(DownloadSection(group, listOf(record)))),
+                    ),
                     onRetry = onRetry,
                     onCancel = onCancel,
                     onOpen = onOpen,

@@ -4,7 +4,7 @@ This is the endpoint and access-state contract the Android client already codes 
 `PaperReaderApi` (`app/src/main/java/com/example/paperReader/data/remote/PaperReaderApi.kt`) and the
 DTOs in `data/remote/dto/PaperDtos.kt`. The PaperReader server is still being built (see
 `docs/backend/demo-mode.md`); this document is what a real implementation must satisfy so that
-building the `integration` flavor is a configuration change, not a client rewrite.
+building the `integration` or `production` flavor is a configuration change, not a client rewrite.
 
 The **normative, checksum-pinned** statement of what this client expects lives in
 `app/src/test/resources/contract/v1/`, and the rules for changing it live in
@@ -30,7 +30,9 @@ The backend, not the Android client, owns:
 
 ## Endpoints
 
-All paths are relative to the configured `paperReaderBackendBaseUrl` build property.
+All paths are relative to the build's configured base URL — `paperReaderBackendBaseUrl` for the
+`integration` flavor, the pinned `https://barretolab.tech/` constant for `production`. Because the
+paths are relative, that base URL is the bare origin, not a prefix ending in `/v1/papers/`.
 
 ### `GET /v1/papers/search`
 

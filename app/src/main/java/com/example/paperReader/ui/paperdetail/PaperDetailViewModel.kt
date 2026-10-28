@@ -89,7 +89,7 @@ class PaperDetailViewModel @Inject constructor(
         }
         return when {
             paper != null -> PaperDetailContent.Loaded(paper = paper, isStale = status is NetworkStatus.Error)
-            status is NetworkStatus.Error -> PaperDetailContent.Error(status.error.userMessage, status.error.isRecoverable)
+            status is NetworkStatus.Error -> PaperDetailContent.Error(status.error)
             else -> PaperDetailContent.Loading
         }
     }
