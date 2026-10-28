@@ -1,5 +1,11 @@
 package com.example.paperReader.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -86,6 +92,22 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
         // the indicator that reopens it; a simulated download carries its own disclaimer.
         NavHost(
             navController = navController,
+            // Switching tabs is not forward navigation, so it does not animate. The default
+            // crossfade kept both destinations composed and half-opaque for its whole duration,
+            // and rapid taps stacked a new fade on one still running, overlapping the text of two
+            // or three screens. Even a transition of no length keeps the outgoing screen composed
+            // for a frame or two, so it is hidden from the first of them rather than left drawn
+            // under the new one — except beneath a detail push, which slides over it.
+            enterTransition = { EnterTransition.None },
+            exitTransition = {
+                if (targetState.destination.hasRoute<PaperReaderRoute.PaperDetail>()) {
+                    ExitTransition.None
+                } else {
+                    hiddenAtOnce
+                }
+            },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { hiddenAtOnce },
             startDestination = PaperReaderRoute.Search,
             modifier = Modifier.padding(innerPadding),
         ) {
@@ -107,7 +129,17 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
             composable<PaperReaderRoute.Downloads> {
                 DownloadsRoute()
             }
-            composable<PaperReaderRoute.PaperDetail> {
+            // A slide and no fade: detail draws an opaque surface, so while it moves it covers the
+            // screen beneath instead of blending its text with it. Leaving detail for a tab is a
+            // tab switch and stays instant; only push and back move.
+            composable<PaperReaderRoute.PaperDetail>(
+                enterTransition = {
+                    slideIntoContainer(SlideDirection.Start, tween(DETAIL_SLIDE_MILLIS))
+                },
+                popExitTransition = {
+                    slideOutOfContainer(SlideDirection.End, tween(DETAIL_SLIDE_MILLIS))
+                },
+            ) {
                 PaperDetailRoute(
                     onBack = { navController.popBackStack() },
                     onNavigateTo = navigateToErrorRoute,
@@ -116,6 +148,12 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** Long enough to read as movement, short enough that a quick back-and-forth never waits on it. */
+private const val DETAIL_SLIDE_MILLIS = 250
+
+/** Gone from the first frame it is leaving on; see the NavHost's transitions. */
+private val hiddenAtOnce = fadeOut(snap())
 
 /** The one place an [ErrorRoute] becomes a destination, so nothing below navigation needs to know
  * the graph exists. */
