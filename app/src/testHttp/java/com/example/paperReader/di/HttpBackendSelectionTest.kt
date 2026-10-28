@@ -13,18 +13,22 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The integration flavor reaches a real server and cannot reach anything else.
+ * Every flavor that reaches a real server cannot reach anything else.
  *
  * Selection used to be a runtime `when (configuration.mode)` over two providers that both shipped
  * in every APK. It is now decided by which source set is compiled, so the guarantee is stronger
  * than "the right branch is taken": the wrong implementation is not present to take.
+ *
+ * This suite lives in `src/testHttp/` and therefore runs unchanged under both `integration` and
+ * `production`. That is the point — the two flavors differ only in where their address comes from,
+ * and the assertions that say so must not be maintained in two copies that can drift apart.
  */
-class IntegrationBackendSelectionTest {
+class HttpBackendSelectionTest {
 
     @Test
     fun noFakeImplementationExistsOnThisFlavorsClasspath() {
         // The point of the whole arrangement. If these ever resolve, the demo sources have leaked
-        // back into `main` and an integration build is shipping a fake data source again.
+        // back into `main` and an HTTP build is shipping a fake data source again.
         listOf(
             "com.example.paperReader.data.remote.FakePaperRemoteDataSource",
             "com.example.paperReader.data.download.FakeDownloadManager",
@@ -32,7 +36,7 @@ class IntegrationBackendSelectionTest {
             "com.example.paperReader.di.DemoBackendModule",
         ).forEach { className ->
             assertThrows(
-                "$className must not exist in an integration build",
+                "$className must not exist in an HTTP build",
                 ClassNotFoundException::class.java,
             ) { Class.forName(className) }
         }
@@ -40,7 +44,7 @@ class IntegrationBackendSelectionTest {
 
     @Test
     fun theHttpSourceAndWorkManagerGatewayAreWhatIsBound() {
-        val bindings = IntegrationBackendBindsModule::class.java.declaredMethods
+        val bindings = HttpBackendBindsModule::class.java.declaredMethods
             .associate { it.returnType to it.parameterTypes.single() }
 
         assertEquals(HttpPaperRemoteDataSource::class.java, bindings[PaperRemoteDataSource::class.java])
@@ -52,6 +56,6 @@ class IntegrationBackendSelectionTest {
         val configuration = BackendConfiguration(BackendMode.HTTP, baseUrl = "https://api.paperreader.example/")
 
         // Retrofit validates the base URL eagerly, so an unusable one would have thrown here.
-        assertTrue(IntegrationBackendModule.providePaperReaderApi(configuration) is PaperReaderApi)
+        assertTrue(HttpBackendModule.providePaperReaderApi(configuration) is PaperReaderApi)
     }
 }
