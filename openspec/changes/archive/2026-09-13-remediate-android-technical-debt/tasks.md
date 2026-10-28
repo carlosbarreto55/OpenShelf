@@ -118,7 +118,7 @@
 - [x] 10.6 Inspect merged manifests and packaged artifacts for Internet/cleartext boundaries and rerun the source/APK OpenAlex-secret checks.
 - [x] 10.7 Run connected Compose/instrumentation tests for detail not-found, filter accessibility, and a controlled live-mode search/PDF transfer on an emulator or device.
 - [x] 10.8 Run the provider suite against the identical canonical contract version; if provider access is unavailable or failures remain, keep live release and SHR-001–003 closure blocked while preserving Android evidence. *(First satisfied via the fallback branch — provider unreachable. Now satisfied on its real branch: `paperreader-v1.0.0` is published and vendored, and both suites pass against it. See section 11.)*
-- [ ] 10.9 Manually verify demo mode, misconfigured integration failure, local HTTP debug, HTTPS release configuration, empty-page continuation, overlapping pagination, total copy, filter combinations, and download reconfirmation failures.
+- [x] 10.9 Manually verify demo mode, misconfigured integration failure, local HTTP debug, HTTPS release configuration, empty-page continuation, overlapping pagination, total copy, filter combinations, and download reconfirmation failures.
 - [x] 10.10 Update `TECHNICAL_DEBT.md` statuses only for items whose exit criteria and evidence are complete; retain server-dependent/shared items with their external blocker.
 
 ## 11. Provider-backed contract closure and real-server verification
