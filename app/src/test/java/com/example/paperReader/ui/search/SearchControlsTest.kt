@@ -3,6 +3,7 @@ package com.example.paperReader.ui.search
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
@@ -131,6 +132,45 @@ class SearchControlsTest {
         // The old scroll position belonged to results that no longer apply, so the list is back at
         // its first item rather than stranded in the middle of a set that just changed.
         composeRule.onNodeWithText(papers.first().title).assertIsDisplayed()
+    }
+
+    @Test
+    fun comingBackToTheScreenKeepsItsScrollPosition() {
+        var shown by mutableStateOf(true)
+        composeRule.setContent {
+            PaperReaderTheme {
+                // What the NavHost does to Search beneath paper detail or another tab: takes it out
+                // of composition, then brings it back with the state it saved.
+                val saveableStateHolder = rememberSaveableStateHolder()
+                if (shown) {
+                    saveableStateHolder.SaveableStateProvider("search") {
+                        SearchScreen(
+                            state = loadedState(),
+                            onQueryTextChanged = {},
+                            onFiltersChanged = {},
+                            onClearFilters = {},
+                            onSortOrderChanged = {},
+                            onRetry = {},
+                            onLoadNextPage = {},
+                            onToggleSave = {},
+                            onOpenPaper = {},
+                            onStartDownload = {},
+                            onReadOnline = {},
+                        )
+                    }
+                }
+            }
+        }
+        composeRule.onNodeWithTag(SEARCH_RESULT_LIST_TEST_TAG).performScrollToIndex(papers.size - 1)
+
+        shown = false
+        composeRule.waitForIdle()
+        shown = true
+        composeRule.waitForIdle()
+
+        // The same search, so the position is still the user's: not a change to scroll back from.
+        composeRule.onNodeWithText(papers.last().title).assertIsDisplayed()
+        composeRule.onNodeWithText(papers.first().title).assertDoesNotExist()
     }
 
     @Test
