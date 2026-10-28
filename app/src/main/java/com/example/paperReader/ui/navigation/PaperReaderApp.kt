@@ -1,5 +1,6 @@
 package com.example.paperReader.ui.navigation
 
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -84,10 +85,18 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
         // No demo notice here: disclosing placeholder data is owed *once*, not as permanent
         // chrome on every destination. The search screen carries the dismissible explanation and
         // the indicator that reopens it; a simulated download carries its own disclaimer.
+        //
+        // The padding already covers the status bar and the navigation bar (the bottom bar
+        // includes the latter), so it is also marked consumed. Padding alone does not tell a
+        // destination's own Scaffold or TopAppBar that, and the detail screen's applied both
+        // insets a second time: a status-bar-high strip above its app bar, and another
+        // navigation-bar-high one at the foot of its content.
         NavHost(
             navController = navController,
             startDestination = PaperReaderRoute.Search,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding),
         ) {
             composable<PaperReaderRoute.Search> {
                 SearchRoute(
