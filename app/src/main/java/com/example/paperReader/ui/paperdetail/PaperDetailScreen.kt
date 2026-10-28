@@ -3,6 +3,7 @@ package com.example.paperReader.ui.paperdetail
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -23,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -198,7 +200,17 @@ private fun PaperDetailBody(
         }
 
         if (paper.topics.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.control)) {
+            // Wraps rather than shares one line: a Row hands each later pill only the width its
+            // predecessors left, so a long first topic squeezes the rest until their labels break
+            // inside words — and a pill left with no width at all lays out one character per line,
+            // opening a tall blank gap above the abstract. Each pill here is measured against the
+            // full row, so it keeps its natural width and moves down a line when it does not fit;
+            // only a topic wider than the whole row wraps, and then at its own word boundaries.
+            FlowRow(
+                modifier = Modifier.testTag(PAPER_DETAIL_TOPICS_TEST_TAG),
+                horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.control),
+                verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.control),
+            ) {
                 paper.topics.forEach { topic -> MetadataPill(text = topic.name) }
             }
         }
@@ -232,3 +244,6 @@ private fun formatDetailMetadataLine(paper: Paper): String? {
     }
     return parts.takeIf(List<String>::isNotEmpty)?.joinToString(separator = " · ")
 }
+
+/** The detail screen's topic pills, so tests can check how they wrap without matching on copy. */
+const val PAPER_DETAIL_TOPICS_TEST_TAG = "paper-detail-topics"
