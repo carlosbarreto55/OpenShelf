@@ -1,5 +1,6 @@
 package com.example.paperReader.ui.search
 
+import com.example.paperReader.core.preferences.DemoDisclosurePreferences
 import com.example.paperReader.domain.model.CursorPage
 import com.example.paperReader.domain.model.DownloadAvailability
 import com.example.paperReader.domain.model.Paper
@@ -85,4 +86,18 @@ class FakeSearchPaperRepository : PaperRepository {
     override suspend fun pruneStaleCache() = Unit
 
     private fun PaperQuery.cacheKey(): String = "${text.value}|$filters|$sortOrder"
+}
+
+/** In-memory [DemoDisclosurePreferences]. [acknowledged] survives the ViewModel it was handed to,
+ * which is what makes "dismissal persists across recreation" assertable without DataStore. */
+class FakeDemoDisclosurePreferences(acknowledged: Boolean = false) : DemoDisclosurePreferences {
+    private val state = MutableStateFlow(acknowledged)
+
+    val acknowledged: Boolean get() = state.value
+
+    override val isAcknowledged: Flow<Boolean> = state
+
+    override suspend fun acknowledge() {
+        state.value = true
+    }
 }

@@ -1,5 +1,7 @@
 package com.example.paperReader.ui.search
 
+import com.example.paperReader.core.config.BackendConfiguration
+import com.example.paperReader.core.config.BackendMode
 import com.example.paperReader.domain.model.CursorPage
 import com.example.paperReader.domain.model.PaperFilters
 import com.example.paperReader.domain.model.PaperType
@@ -35,6 +37,7 @@ class SearchViewModelTest {
     private lateinit var repository: FakeSearchPaperRepository
     private lateinit var libraryRepository: FakeLibraryRepository
     private lateinit var downloadsRepository: FakeDownloadsRepository
+    private lateinit var demoDisclosurePreferences: FakeDemoDisclosurePreferences
     private lateinit var viewModel: SearchViewModel
 
     @Before
@@ -43,16 +46,28 @@ class SearchViewModelTest {
         repository = FakeSearchPaperRepository()
         libraryRepository = FakeLibraryRepository()
         downloadsRepository = FakeDownloadsRepository()
-        viewModel = SearchViewModel(
-            repository,
-            SearchPapersUseCase(repository),
-            ToggleSavedPaperUseCase(libraryRepository),
-            downloadsRepository,
-        )
+        demoDisclosurePreferences = FakeDemoDisclosurePreferences()
+        viewModel = searchViewModel()
         // WhileSubscribed(5000) means uiState only runs its upstream while collected; keep one
         // collector alive for the whole test so state updates as soon as they happen.
         viewModel.uiState.onEach { }.launchIn(CoroutineScope(dispatcher))
     }
+
+    /** A ViewModel over the shared fakes. Called again in the persistence tests to stand in for a
+     * process or ViewModel recreation while the stored acknowledgement survives. */
+    private fun searchViewModel(
+        mode: BackendMode = BackendMode.FAKE,
+    ) = SearchViewModel(
+        repository,
+        SearchPapersUseCase(repository),
+        ToggleSavedPaperUseCase(libraryRepository),
+        downloadsRepository,
+        demoDisclosurePreferences,
+        BackendConfiguration(
+            mode = mode,
+            baseUrl = if (mode == BackendMode.HTTP) "https://paperreader.invalid/" else null,
+        ),
+    )
 
     @After
     fun tearDown() {
@@ -325,6 +340,33 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun twoPagesWithNoSuppliedTotalStillReportNoTotal() = runTest(dispatcher) {
+        // The defect this guards: substituting what has been loaded for what matched, so that
+        // "3 results" silently becomes "6 results" as the user pages.
+        repository.searchHandler = { request ->
+            if (request.cursor == null) {
+                RepositoryResult.Success(CursorPage(items = listOf(testPaper("W1")), nextCursor = "next"))
+            } else {
+                RepositoryResult.Success(CursorPage(items = listOf(testPaper("W2"))))
+            }
+        }
+
+        viewModel.onQueryTextChanged("uncounted")
+        dispatcher.scheduler.advanceUntilIdle()
+        assertNull((viewModel.uiState.value.content as SearchContent.Loaded).totalItems)
+
+        viewModel.loadNextPage()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val content = viewModel.uiState.value.content as SearchContent.Loaded
+        assertEquals(2, content.papers.size)
+        assertNull(
+            "An absent total stayed absent only until a page count could stand in for it",
+            content.totalItems,
+        )
+    }
+
+    @Test
     fun aFailedDownloadConfirmationIsSurfacedRatherThanDiscarded() = runTest(dispatcher) {
         downloadsRepository.startResult = RepositoryResult.Failure(RepositoryError.NoDownloadableContent)
 
@@ -332,8 +374,8 @@ class SearchViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
-            RepositoryError.NoDownloadableContent.userMessage,
-            viewModel.uiState.value.downloadFeedback?.message,
+            RepositoryError.NoDownloadableContent,
+            viewModel.uiState.value.downloadFeedback?.error,
         )
 
         viewModel.dismissDownloadFeedback()

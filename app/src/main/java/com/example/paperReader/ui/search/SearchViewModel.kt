@@ -2,6 +2,9 @@ package com.example.paperReader.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.paperReader.core.config.BackendConfiguration
+import com.example.paperReader.core.config.BackendMode
+import com.example.paperReader.core.preferences.DemoDisclosurePreferences
 import com.example.paperReader.domain.model.CursorPage
 import com.example.paperReader.domain.model.Paper
 import com.example.paperReader.domain.model.PaperFilters
@@ -41,6 +44,8 @@ class SearchViewModel @Inject constructor(
     private val searchPapers: SearchPapersUseCase,
     private val toggleSavedPaper: ToggleSavedPaperUseCase,
     private val downloadsRepository: DownloadsRepository,
+    private val demoDisclosurePreferences: DemoDisclosurePreferences,
+    backendConfiguration: BackendConfiguration,
 ) : ViewModel() {
 
     private val rawQueryText = MutableStateFlow("")
@@ -50,6 +55,22 @@ class SearchViewModel @Inject constructor(
     private val appendState = MutableStateFlow(AppendState.IDLE)
     private val downloadFeedback = MutableStateFlow<DownloadFeedback?>(null)
     private val paginationOutcome = MutableStateFlow<PageLoadOutcome?>(null)
+
+    /** Whether the indicator has reopened the explanation in *this* session. Deliberately not
+     * persisted: reopening is a look at something already acknowledged, not an un-acknowledgement. */
+    private val demoExplanationReopened = MutableStateFlow(false)
+
+    /**
+     * A non-fake build owes no disclosure at all, so it never reads the stored flag and never
+     * renders an indicator.
+     */
+    private val demoDisclosure = if (backendConfiguration.mode != BackendMode.FAKE) {
+        flowOf(DemoDisclosureState.Hidden)
+    } else {
+        combine(demoDisclosurePreferences.isAcknowledged, demoExplanationReopened) { acknowledged, reopened ->
+            if (acknowledged && !reopened) DemoDisclosureState.IndicatorOnly else DemoDisclosureState.FirstRun
+        }
+    }.distinctUntilChanged()
 
     /** The traversal for the query currently on screen. Replaced wholesale when the query,
      * filters, or sort change, which is what cancels the old one (7.7). */
@@ -77,6 +98,7 @@ class SearchViewModel @Inject constructor(
         repository.observeRecentQueries(),
         contentFlow,
         downloadFeedback,
+        demoDisclosure,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         SearchUiState(
@@ -86,6 +108,7 @@ class SearchViewModel @Inject constructor(
             recentQueries = values[3] as List<String>,
             content = values[4] as SearchContent,
             downloadFeedback = values[5] as DownloadFeedback?,
+            demoDisclosure = values[6] as DemoDisclosureState,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SearchUiState())
 
@@ -147,6 +170,17 @@ class SearchViewModel @Inject constructor(
         downloadFeedback.value = null
     }
 
+    /** Acknowledges the first-run explanation. Only the explanation is suppressed: the indicator
+     * stays, and the disclaimer inside a simulated download is untouched. */
+    fun dismissDemoExplanation() {
+        demoExplanationReopened.value = false
+        viewModelScope.launch { demoDisclosurePreferences.acknowledge() }
+    }
+
+    fun openDemoExplanation() {
+        demoExplanationReopened.value = true
+    }
+
     /** One query's observable results: the cached/Room-backed page decorated with the status of a
      * concurrent network refresh. Cancelling the collector (a new query settling via
      * [flatMapLatest]) cancels the in-flight [SearchPapersUseCase] call too. */
@@ -188,7 +222,7 @@ class SearchViewModel @Inject constructor(
         return when {
             page.items.isEmpty() && status is NetworkStatus.Loading -> SearchContent.Loading
             page.items.isEmpty() && status is NetworkStatus.Error ->
-                SearchContent.Error(status.error.userMessage, status.error.isRecoverable)
+                SearchContent.Error(status.error)
 
             // "No matches" is only true when the sequence actually ended. A retained cursor means
             // there may be papers on a later page, and saying otherwise would be a false claim.

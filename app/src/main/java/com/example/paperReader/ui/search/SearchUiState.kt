@@ -3,7 +3,29 @@ package com.example.paperReader.ui.search
 import com.example.paperReader.domain.model.Paper
 import com.example.paperReader.domain.model.PaperFilters
 import com.example.paperReader.domain.model.SortOrder
+import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.ui.components.DownloadFeedback
+
+/**
+ * How much the screen still owes the user about this build running on placeholder data.
+ *
+ * [Hidden] is the only state a non-fake build ever reaches. The other two differ *only* in whether
+ * the full explanation is currently open: the compact indicator is present for both, because it is
+ * never dismissible (backend-ready-data-layer: "Demo state remains discoverable").
+ */
+enum class DemoDisclosureState {
+    /** Not a demo build: no explanation, no indicator, anywhere. */
+    Hidden,
+
+    /** The explanation is owed — never acknowledged, or reopened from the indicator. */
+    FirstRun,
+
+    /** Acknowledged: the explanation is gone, the indicator that reopens it is not. */
+    IndicatorOnly,
+    ;
+
+    val isDemoBuild: Boolean get() = this != Hidden
+}
 
 enum class AppendState {
     IDLE,
@@ -28,7 +50,12 @@ sealed interface SearchContent {
      */
     data class MorePagesPending(val queryText: String) : SearchContent
 
-    data class Error(val message: String, val isRecoverable: Boolean) : SearchContent
+    /**
+     * The classified cause itself, not a flattened message. The UI maps it to a headline, an
+     * explanation, whether a retry is even offered, and a route that still works under it — see
+     * [com.example.paperReader.ui.components.toPresentation].
+     */
+    data class Error(val error: RepositoryError) : SearchContent
 
     data class Loaded(
         val papers: List<Paper>,
@@ -50,4 +77,8 @@ data class SearchUiState(
     /** Why the last download attempt could not start. Persistent until dismissed so the outcome
      * of a user action is never silently dropped (AND-006). */
     val downloadFeedback: DownloadFeedback? = null,
+    /** Starting points offered before any query has been submitted. A fixed local list presented
+     * as plain queries — see [SUGGESTED_TOPICS]. */
+    val suggestedTopics: List<String> = SUGGESTED_TOPICS,
+    val demoDisclosure: DemoDisclosureState = DemoDisclosureState.Hidden,
 )
