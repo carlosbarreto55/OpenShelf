@@ -210,6 +210,11 @@ Retrofit, DAOs, or download APIs directly.
   descriptor — renders with **no** badge, source URL, lock icon, or action, not even a disabled
   one. This holds on search cards, detail, library, and downloads alike. The single mapping point is
   `ui/components/AccessPresentation.kt`'s `toAccessAction()`.
+- **System-bar insets are applied once, by the app `Scaffold`.** The `NavHost` is padded *and*
+  `consumeWindowInsets` with its inner padding, so a destination's own `Scaffold` or `TopAppBar`
+  does not add the status- and navigation-bar insets a second time. Keep both modifiers. Detail
+  layout is checked against live-shaped papers (three long topics), not just the one-short-topic
+  demo fixtures; see `PaperDetailSectionSpacingTest`.
 - **Failures are presented by cause, through one mapping point.** `SearchContent.Error` and
   `PaperDetailContent.Error` carry the `RepositoryError` itself, never a flattened message, and
   `ui/components/ErrorPresentation.kt`'s `toPresentation()` is the only place a cause becomes copy.
