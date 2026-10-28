@@ -61,6 +61,15 @@ check happened.
   `hotfix/`, `release/`, `chore/`. Lowercase letters, digits and single hyphens only — no leading,
   trailing or doubled hyphens; dots only in a `release/` version. Put the issue number in when there
   is one: `bugfix/issue-3-search-tab-from-detail`.
+- **A merge commit that brings `main` into a branch** (GitHub's *Update branch*) is not authored work,
+  so the message and size rules do not apply to it. Prefer rebasing anyway.
+
+**Claude reviews every pull request into `main`** (`.github/workflows/claude-code-review.yml`, the
+`claude-review` check). It checks the rules above and sorts code findings into critical, medium and
+suggestion. A critical finding fails the check, and the `main` ruleset requires it; only a repository
+admin can bypass. The criteria live in `.github/claude/review-prompt.md` and are read from the
+**base branch**, as is this file, so a change to either applies only after it merges. Renaming the
+job breaks the required check. See `docs/code-review.md`.
 
 ## OpenSpec workflow
 
