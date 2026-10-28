@@ -143,8 +143,9 @@ On Apple Silicon the arm64 variant is chosen automatically. Its AVD lives under
 `~/.android/avd/gradle-managed/` and never touches a developer's own AVDs.
 
 Note the shared `androidTest` source set runs against **all three** flavors,
-`app/src/androidTestHttp/` against `integration` and `production`, and
-`app/src/androidTestIntegration/` against `integration` alone. When changing a mapper or repository
+`app/src/androidTestHttp/` against `integration` and `production`,
+`app/src/androidTestIntegration/` against `integration` alone, and `app/src/androidTestDemo/`
+against `demo` alone (end-to-end flows that rely on the fixture catalog). When changing a mapper or repository
 signature, compile all of them — `assembleDemoDebugAndroidTest` alone will not catch a break in the
 HTTP-only source sets.
 
@@ -225,6 +226,11 @@ Retrofit, DAOs, or download APIs directly.
   record leaves the list instead of becoming a group, and an empty group is never emitted, so no
   heading can stand over nothing. "Clear completed" removes the record and its managed file
   together, through the gateway that owns both.
+- **Tab switches do not animate.** The `NavHost` in `ui/navigation/PaperReaderApp.kt` gives
+  top-level destinations no transition, and hides an outgoing tab with `fadeOut(snap())` because
+  navigation keeps it composed for a frame or two even then. Only the push to paper detail and the
+  way back slide, and with no fade, since detail's opaque surface covers the screen beneath. A
+  crossfade between tabs overlaps two screens' text; `MainActivityTest` bounds the overlap.
 - **No OpenAlex key or direct OpenAlex call.** The client talks only to the PaperReader backend.
   Two Gradle checks enforce this on sources and packaged artifacts.
 - **Transfer-time descriptor confirmation.** Every initial *and* retried download calls
@@ -235,6 +241,13 @@ Retrofit, DAOs, or download APIs directly.
   the freshness authority.
 - **Room is the source of truth for the UI.** Remote or fake results are mapped and persisted, then
   the UI observes Room — never the network response directly.
+- **Every tab navigation goes through `navigateToTab`.** Bottom-bar taps and error routes alike, so
+  every tab is opened with `popUpTo` the start destination and the stack is always Search, then at
+  most one of Library or Downloads, then whatever was pushed. `owningTab()` relies on that shape to
+  pick the highlighted tab, including on paper detail. Tapping the owning tab pops to its root
+  *without* restoring state; a save-and-restore navigate there restores the very stack it saved and
+  does nothing. `SearchScreen` returns its list to the top only when the search changes while it is
+  composed, so coming back keeps the scroll position.
 - **One cached result per `(queryKey, paperId)`.** A unique index enforces it; page persistence
   deduplicates by first occurrence and allocates positions after the current *maximum*, never after
   the row count (migrated rows can leave gaps).

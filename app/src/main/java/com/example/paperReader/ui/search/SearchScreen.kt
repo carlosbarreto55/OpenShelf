@@ -144,9 +144,15 @@ fun SearchScreen(
 
     // Changing what is being searched makes the current scroll position meaningless — it belongs
     // to results that no longer exist — so the list returns to its first item (paper-discovery:
-    // "Editing from the scrolled position"). Already at the top on first composition, where this
-    // is a no-op.
-    LaunchedEffect(state.queryText, state.filters, state.sortOrder) {
+    // "Editing from the scrolled position"). Only a *change* does: coming back from paper detail
+    // or another tab composes this screen afresh with the same search and a restored scroll
+    // position, which an effect keyed on the search alone would have thrown away. Plain
+    // `remember`, so each fresh composition starts out treating its search as already scrolled for.
+    val search = Triple(state.queryText, state.filters, state.sortOrder)
+    val scrolledFor = remember { mutableStateOf(search) }
+    LaunchedEffect(search) {
+        if (search == scrolledFor.value) return@LaunchedEffect
+        scrolledFor.value = search
         listState.scrollToItem(0)
     }
 
