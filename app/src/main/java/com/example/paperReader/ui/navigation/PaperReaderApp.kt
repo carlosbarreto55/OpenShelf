@@ -16,6 +16,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -120,6 +121,7 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
                     onOpenPaper = { paperId: PaperId ->
                         navController.navigate(PaperReaderRoute.PaperDetail(paperId.value))
                     },
+                    onOpenReader = openReader,
                     onNavigateTo = navigateToErrorRoute,
                 )
             }
@@ -128,6 +130,7 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
                     onOpenPaper = { paperId: PaperId ->
                         navController.navigate(PaperReaderRoute.PaperDetail(paperId.value))
                     },
+                    onOpenReader = openReader,
                 )
             }
             composable<PaperReaderRoute.Downloads> {
@@ -146,6 +149,7 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
             ) {
                 PaperDetailRoute(
                     onBack = { navController.popBackStack() },
+                    onOpenReader = openReader,
                     onNavigateTo = navigateToErrorRoute,
                 )
             }

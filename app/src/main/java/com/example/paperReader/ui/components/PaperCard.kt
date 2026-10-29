@@ -30,7 +30,7 @@ fun PaperCard(
     paper: Paper,
     onClick: () -> Unit,
     onToggleSave: () -> Unit,
-    onDownloadPdf: (ConfirmedPdfDescriptor) -> Unit,
+    onReadPdf: () -> Unit,
     onReadOnline: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -80,7 +80,7 @@ fun PaperCard(
 
             AccessActionRow(
                 access = paper.access,
-                onDownloadPdf = onDownloadPdf,
+                onReadPdf = onReadPdf,
                 onReadOnline = onReadOnline,
             )
         }

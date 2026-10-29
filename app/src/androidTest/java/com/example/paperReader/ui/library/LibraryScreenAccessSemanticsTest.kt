@@ -20,13 +20,13 @@ class LibraryScreenAccessSemanticsTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun savedPaperWithConfirmedPdfShowsDownloadAction() {
+    fun savedPaperWithConfirmedPdfShowsReadPdfAction() {
         val paper = paperWith(
             AccessResolution.DirectPdf(ConfirmedPdfDescriptor(url = "https://demo.paperreader.invalid/papers/W1.pdf")),
         )
         setContentWith(listOf(paper))
 
-        composeRule.onNodeWithText("Download PDF").assertIsDisplayed()
+        composeRule.onNodeWithText("Read PDF").assertIsDisplayed()
     }
 
     @Test
@@ -40,7 +40,7 @@ class LibraryScreenAccessSemanticsTest {
         )
         setContentWith(silentPapers)
 
-        composeRule.onNodeWithText("Download PDF").assertDoesNotExist()
+        composeRule.onNodeWithText("Read PDF").assertDoesNotExist()
         composeRule.onNodeWithText("Read online").assertDoesNotExist()
     }
 
@@ -51,7 +51,7 @@ class LibraryScreenAccessSemanticsTest {
                     state = LibraryUiState(content = LibraryContent.Loaded(papers)),
                     onOpenPaper = {},
                     onToggleSave = {},
-                    onStartDownload = {},
+                    onReadPdf = {},
                     onReadOnline = {},
                 )
             }

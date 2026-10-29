@@ -20,6 +20,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,18 +49,22 @@ import com.example.paperReader.ui.theme.spacing
 @Composable
 fun PaperDetailRoute(
     onBack: () -> Unit,
+    onOpenReader: (downloadId: String) -> Unit,
     onNavigateTo: (ErrorRoute) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PaperDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
+    LaunchedEffect(viewModel) {
+        viewModel.openReaderRequestsFlow.collect(onOpenReader)
+    }
     PaperDetailScreen(
         state = uiState,
         onBack = onBack,
         onRetry = viewModel::retry,
         onToggleSave = viewModel::toggleSaved,
-        onDownloadPdf = { viewModel.startDownload() },
+        onReadPdf = viewModel::readPdf,
         onReadOnline = uriHandler::openUri,
         onDismissDownloadFeedback = viewModel::dismissDownloadFeedback,
         onNavigateTo = onNavigateTo,
@@ -74,7 +79,7 @@ fun PaperDetailScreen(
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onToggleSave: () -> Unit,
-    onDownloadPdf: (ConfirmedPdfDescriptor) -> Unit,
+    onReadPdf: () -> Unit,
     onReadOnline: (String) -> Unit,
     modifier: Modifier = Modifier,
     onDismissDownloadFeedback: () -> Unit = {},
@@ -132,7 +137,7 @@ fun PaperDetailScreen(
                         isStale = content.isStale,
                         onRefresh = onRetry,
                         onToggleSave = onToggleSave,
-                        onDownloadPdf = onDownloadPdf,
+                        onReadPdf = onReadPdf,
                         onReadOnline = onReadOnline,
                     )
                 }
@@ -147,7 +152,7 @@ private fun PaperDetailBody(
     isStale: Boolean,
     onRefresh: () -> Unit,
     onToggleSave: () -> Unit,
-    onDownloadPdf: (ConfirmedPdfDescriptor) -> Unit,
+    onReadPdf: () -> Unit,
     onReadOnline: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -217,7 +222,7 @@ private fun PaperDetailBody(
 
         AccessActionRow(
             access = paper.access,
-            onDownloadPdf = onDownloadPdf,
+            onReadPdf = onReadPdf,
             onReadOnline = onReadOnline,
         )
 

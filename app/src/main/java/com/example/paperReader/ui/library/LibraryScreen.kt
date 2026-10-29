@@ -11,6 +11,7 @@ import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -31,16 +32,20 @@ import com.example.paperReader.ui.theme.spacing
 @Composable
 fun LibraryRoute(
     onOpenPaper: (PaperId) -> Unit,
+    onOpenReader: (downloadId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
+    LaunchedEffect(viewModel) {
+        viewModel.openReaderRequestsFlow.collect(onOpenReader)
+    }
     LibraryScreen(
         state = uiState,
         onOpenPaper = onOpenPaper,
         onToggleSave = viewModel::toggleSaved,
-        onStartDownload = viewModel::startDownload,
+        onReadPdf = viewModel::readPdf,
         onReadOnline = uriHandler::openUri,
         onDismissDownloadFeedback = viewModel::dismissDownloadFeedback,
         modifier = modifier,
@@ -52,7 +57,7 @@ fun LibraryScreen(
     state: LibraryUiState,
     onOpenPaper: (PaperId) -> Unit,
     onToggleSave: (Paper) -> Unit,
-    onStartDownload: (Paper) -> Unit,
+    onReadPdf: (Paper) -> Unit,
     onReadOnline: (String) -> Unit,
     modifier: Modifier = Modifier,
     onDismissDownloadFeedback: () -> Unit = {},
@@ -102,7 +107,7 @@ fun LibraryScreen(
                     paper = paper,
                     onClick = { onOpenPaper(paper.id) },
                     onToggleSave = { onToggleSave(paper) },
-                    onDownloadPdf = { onStartDownload(paper) },
+                    onReadPdf = { onReadPdf(paper) },
                     onReadOnline = onReadOnline,
                 )
             }

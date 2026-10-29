@@ -1,5 +1,9 @@
 package com.example.paperReader.ui.paperdetail
 
+import kotlinx.coroutines.flow.first
+import com.example.paperReader.domain.repository.testDownloadRecord
+import com.example.paperReader.domain.usecase.ReadPaperUseCase
+import com.example.paperReader.domain.repository.DownloadedFiles
 import androidx.lifecycle.SavedStateHandle
 import com.example.paperReader.data.local.TestFixtures
 import com.example.paperReader.domain.model.AccessResolution
@@ -52,7 +56,7 @@ class PaperDetailViewModelTest {
             savedStateHandle,
             repository,
             ToggleSavedPaperUseCase(libraryRepository),
-            downloadsRepository,
+            ReadPaperUseCase(downloadsRepository, DownloadedFiles { false }),
         ).also {
             it.uiState.onEach { }.launchIn(CoroutineScope(dispatcher))
         }
@@ -142,17 +146,19 @@ class PaperDetailViewModelTest {
     }
 
     @Test
-    fun startDownloadDelegatesToDownloadsRepositoryForTheLoadedPaper() = runTest(dispatcher) {
+    fun readPdfOpensTheReaderOnTheLoadedPapersConfirmedDownload() = runTest(dispatcher) {
         val paper = testPaper("W1", access = TestFixtures.directPdf())
         val repository = FakePaperDetailRepository()
         repository.refreshHandler = { RepositoryResult.Success(paper) }
+        downloadsRepository.startResult = RepositoryResult.Success(testDownloadRecord("W1"))
         val viewModel = viewModel(repository)
         dispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.startDownload()
+        viewModel.readPdf()
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(listOf(paper), downloadsRepository.startDownloadCalls)
+        assertEquals("download-W1", viewModel.openReaderRequestsFlow.first())
     }
 
     @Test
@@ -214,13 +220,16 @@ class PaperDetailViewModelTest {
         val viewModel = viewModel(repository)
         dispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.startDownload()
+        val readerRequests = mutableListOf<String>()
+        viewModel.openReaderRequestsFlow.onEach { readerRequests += it }.launchIn(CoroutineScope(dispatcher))
+        viewModel.readPdf()
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
             RepositoryError.NoDownloadableContent,
             viewModel.uiState.value.downloadFeedback?.error,
         )
+        assertTrue("a failed confirmation opens no reader", readerRequests.isEmpty())
 
         viewModel.dismissDownloadFeedback()
         dispatcher.scheduler.advanceUntilIdle()

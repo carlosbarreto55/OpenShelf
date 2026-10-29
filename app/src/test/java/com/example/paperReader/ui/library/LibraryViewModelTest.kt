@@ -1,5 +1,10 @@
 package com.example.paperReader.ui.library
 
+import com.example.paperReader.data.local.TestFixtures
+import kotlinx.coroutines.flow.first
+import com.example.paperReader.domain.repository.testDownloadRecord
+import com.example.paperReader.domain.usecase.ReadPaperUseCase
+import com.example.paperReader.domain.repository.DownloadedFiles
 import com.example.paperReader.domain.model.AccessResolution
 import com.example.paperReader.domain.model.SavedState
 import com.example.paperReader.domain.repository.FakeDownloadsRepository
@@ -37,7 +42,11 @@ class LibraryViewModelTest {
         Dispatchers.setMain(dispatcher)
         libraryRepository = FakeLibraryRepository()
         downloadsRepository = FakeDownloadsRepository()
-        viewModel = LibraryViewModel(libraryRepository, ToggleSavedPaperUseCase(libraryRepository), downloadsRepository)
+        viewModel = LibraryViewModel(
+            libraryRepository,
+            ToggleSavedPaperUseCase(libraryRepository),
+            ReadPaperUseCase(downloadsRepository, DownloadedFiles { false }),
+        )
         viewModel.uiState.onEach { }.launchIn(CoroutineScope(dispatcher))
     }
 
@@ -88,12 +97,15 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun startDownloadDelegatesToDownloadsRepository() = runTest(dispatcher) {
-        val paper = testPaper("W1", savedState = SavedState.SAVED)
-        viewModel.startDownload(paper)
+    fun readPdfOpensTheReaderOnTheConfirmedDownload() = runTest(dispatcher) {
+        val paper = testPaper("W1", access = TestFixtures.directPdf(), savedState = SavedState.SAVED)
+        downloadsRepository.startResult = RepositoryResult.Success(testDownloadRecord("W1"))
+
+        viewModel.readPdf(paper)
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(listOf(paper), downloadsRepository.startDownloadCalls)
+        assertEquals("download-W1", viewModel.openReaderRequestsFlow.first())
     }
 
     @Test
@@ -102,13 +114,16 @@ class LibraryViewModelTest {
         // any other, so they can fail — and the library used to drop that outcome on the floor.
         downloadsRepository.startResult = RepositoryResult.Failure(RepositoryError.NoDownloadableContent)
 
-        viewModel.startDownload(testPaper("W1", savedState = SavedState.SAVED))
+        val readerRequests = mutableListOf<String>()
+        viewModel.openReaderRequestsFlow.onEach { readerRequests += it }.launchIn(CoroutineScope(dispatcher))
+        viewModel.readPdf(testPaper("W1", access = TestFixtures.directPdf(), savedState = SavedState.SAVED))
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
             RepositoryError.NoDownloadableContent,
             viewModel.uiState.value.downloadFeedback?.error,
         )
+        assertTrue("a failed confirmation opens no reader", readerRequests.isEmpty())
 
         viewModel.dismissDownloadFeedback()
         dispatcher.scheduler.advanceUntilIdle()

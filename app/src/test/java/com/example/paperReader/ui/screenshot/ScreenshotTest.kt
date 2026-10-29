@@ -72,7 +72,7 @@ class ScreenshotTest {
                         onLoadNextPage = {},
                         onToggleSave = {},
                         onOpenPaper = {},
-                        onStartDownload = {},
+                        onReadPdf = {},
                         onReadOnline = {},
                     )
                 }
@@ -143,7 +143,7 @@ class ScreenshotTest {
                         onBack = {},
                         onRetry = {},
                         onToggleSave = {},
-                        onDownloadPdf = {},
+                        onReadPdf = {},
                         onReadOnline = {},
                     )
                 }
@@ -218,7 +218,7 @@ class ScreenshotTest {
         composeRule.setContent {
             PaperReaderTheme {
                 FixedSize(width = 360, height = 220) {
-                    PaperCard(paper = paper, onClick = {}, onToggleSave = {}, onDownloadPdf = {}, onReadOnline = {})
+                    PaperCard(paper = paper, onClick = {}, onToggleSave = {}, onReadPdf = {}, onReadOnline = {})
                 }
             }
         }

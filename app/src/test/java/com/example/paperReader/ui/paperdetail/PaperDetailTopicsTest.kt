@@ -90,7 +90,7 @@ class PaperDetailTopicsTest {
                     onBack = {},
                     onRetry = {},
                     onToggleSave = {},
-                    onDownloadPdf = {},
+                    onReadPdf = {},
                     onReadOnline = {},
                 )
             }

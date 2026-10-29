@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Color
  *
  * Role mapping used by the reference screen:
  * - [LatticeDarkBackground] page canvas, [LatticeDarkSurfaceContainer] cards / search field / nav bar
- * - [LatticeDarkPrimary] filled accent actions ("Search", "Download PDF") and access affordances
+ * - [LatticeDarkPrimary] filled accent actions ("Search", "Read PDF") and access affordances
  * - [LatticeDarkPrimaryContainer] the active filter chip
  * - [LatticeDarkSecondaryContainer] the selected navigation indicator (Material 3 draws it from
  *   this role), matching the active chip's green pill

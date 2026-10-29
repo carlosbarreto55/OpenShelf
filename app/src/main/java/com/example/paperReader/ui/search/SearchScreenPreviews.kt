@@ -85,7 +85,7 @@ private fun SearchScreenLoadedPreview() {
             onLoadNextPage = {},
             onToggleSave = {},
             onOpenPaper = {},
-            onStartDownload = {},
+            onReadPdf = {},
             onReadOnline = {},
         )
     }
@@ -105,7 +105,7 @@ private fun SearchScreenEmptyPreview() {
             onLoadNextPage = {},
             onToggleSave = {},
             onOpenPaper = {},
-            onStartDownload = {},
+            onReadPdf = {},
             onReadOnline = {},
         )
     }
@@ -125,7 +125,7 @@ private fun SearchScreenErrorPreview() {
             onLoadNextPage = {},
             onToggleSave = {},
             onOpenPaper = {},
-            onStartDownload = {},
+            onReadPdf = {},
             onReadOnline = {},
         )
     }
@@ -146,7 +146,7 @@ private fun SearchScreenInitialPreview() {
             onLoadNextPage = {},
             onToggleSave = {},
             onOpenPaper = {},
-            onStartDownload = {},
+            onReadPdf = {},
             onReadOnline = {},
         )
     }
