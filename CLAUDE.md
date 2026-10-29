@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-PaperReader is a working Android app. Search, paper detail, library, downloads, Room caching,
-WorkManager downloads, the fail-closed access rendering, and both a fake and an HTTP remote source
-are **implemented and tested**. The PaperReader server is now deployed at `https://barretolab.tech/`
+PaperReader is a working Android app. Search, paper detail, library, downloads, the in-app PDF
+reader, Room caching, WorkManager downloads, the fail-closed access rendering, and both a fake and
+an HTTP remote source are **implemented and tested**. The PaperReader server is now deployed at `https://barretolab.tech/`
 and the `production` flavor is pinned to it, so a build that returns real bibliographic results and
 real PDFs exists. A production *release* is still gated on the deprecation-window policy (SHR-003)
 and server-side PDF verification (API-001) — see `TECHNICAL_DEBT.md`.
@@ -82,11 +82,13 @@ Use the `openspec-*` skills (or `/opsx:*` commands) to propose, update, or archi
 hand-edit these files as plain notes. Check task boxes as work completes.
 
 Active changes at the time of writing: `restructure-search-screen-chrome`,
-`refine-paper-presentation`, `add-library-collections`, `add-in-app-pdf-reader`. The last two each
-add a Room migration; neither owns a fixed version — whichever is implemented first takes the next
-free version on `main` (3 today). `add-in-app-pdf-reader` replaces the `DirectPdf` action's
-Download PDF with Read PDF, which downloads through the same confirmed pipeline and opens the
-in-app reader; until it ships, Download PDF is current behavior.
+`refine-paper-presentation`, `add-library-collections`. `add-library-collections` adds a Room
+migration and takes the next free version on `main` (5 today) rather than a fixed one.
+
+`add-in-app-pdf-reader` is **implemented** (all its tasks are checked, Room schema version 4) but
+not yet archived, so its deltas are not in `openspec/specs/` yet; until it is archived, read its
+`specs/` for the reader's behavior. Read PDF is the `DirectPdf` action now — there is no Download
+PDF action any more.
 
 `differentiate-screen-states`, `remediate-android-technical-debt`, `add-production-backend-flavor`
 and `isolate-demo-implementations` are **archived** under `openspec/changes/archive/` and their
@@ -174,6 +176,9 @@ Retrofit, DAOs, or download APIs directly.
   `isRecoverable`. No transport or Room types leak through these interfaces.
 - `domain/usecase/SearchCursorSession.kt` — one query's bounded cursor traversal. Deliberately
   below Compose; see "Cursor traversal" below.
+- `domain/usecase/ReadPaperUseCase.kt` — what Read PDF does, shared by search, detail and library:
+  follow a queued or running download, open a completed one whose file is present, otherwise start
+  a confirmed download. It answers a download id, never a paper id.
 - `data/remote/dto/PaperDtos.kt` — `@Serializable` DTOs shaped for the PaperReader backend, not raw
   OpenAlex payloads. Optional restrictions are nullable: **null means "no restriction", and an
   inactive restriction is omitted from the wire entirely**, never sent as `false`.
@@ -189,7 +194,11 @@ Retrofit, DAOs, or download APIs directly.
   `HttpBackendSelectionTest` asserts the classes cannot even be loaded in either HTTP flavor.
 - `data/local/` — Room. `SearchCacheDao.persistPage` is the single transactional write path for a
   mapped page.
-- `ui/` — one package per feature (`search`, `paperdetail`, `library`, `downloads`) plus shared
+- `data/reader/` — opening and rendering a downloaded file. `PdfFileClassifier` sorts out missing,
+  non-PDF (including the demo's text placeholder) and truncated files before the renderer sees
+  them; `PdfRendererPageSource` wraps the platform `PdfRenderer` behind the `PlatformPdfDocument`
+  seam, because Robolectric has no shadow for it. Real-renderer checks live in `androidTest`.
+- `ui/` — one package per feature (`search`, `paperdetail`, `library`, `downloads`, `reader`) plus shared
   `components/`, `navigation/`, `theme/`. `MaterialTheme.spacing` is the spacing token source; do
   not hardcode `dp`. Two shared mapping points live in `components/`:
   `AccessPresentation.kt` (access → affordance) and `ErrorPresentation.kt`
@@ -232,12 +241,13 @@ Retrofit, DAOs, or download APIs directly.
 - **Downloads are grouped by required action.** `DownloadsViewModel` computes ordered sections
   (in progress → needs attention → on this device) rather than inheriting DAO order; a canceled
   record leaves the list instead of becoming a group, and an empty group is never emitted, so no
-  heading can stand over nothing. "Clear completed" removes the record and its managed file
-  together, through the gateway that owns both.
+  heading can stand over nothing. "Clear completed" removes the record, its managed file and its
+  reading position together, through the gateway that owns them.
 - **Tab switches do not animate.** The `NavHost` in `ui/navigation/PaperReaderApp.kt` gives
   top-level destinations no transition, and hides an outgoing tab with `fadeOut(snap())` because
-  navigation keeps it composed for a frame or two even then. Only the push to paper detail and the
-  way back slide, and with no fade, since detail's opaque surface covers the screen beneath. A
+  navigation keeps it composed for a frame or two even then. Only the pushes to paper detail and to
+  the reader, and the way back, slide, and with no fade, since their opaque surfaces cover the
+  screen beneath. A
   crossfade between tabs overlaps two screens' text; `MainActivityTest` bounds the overlap.
 - **No OpenAlex key or direct OpenAlex call.** The client talks only to the PaperReader backend.
   Two Gradle checks enforce this on sources and packaged artifacts.
@@ -247,6 +257,22 @@ Retrofit, DAOs, or download APIs directly.
   record never authorizes a transfer on its own. A new user action additionally still requires the
   paper's current access to be a confirmed `DirectPdf`; a retry does not, because the endpoint is
   the freshness authority.
+- **Read PDF is the only confirmed-PDF action, and it follows access, not the file.** It goes
+  through `ReadPaperUseCase`, which still requires the paper's current access to be a confirmed
+  `DirectPdf` even when the file is on the device. Downloads' Open and the Library's Continue
+  reading open a local file instead and do not re-check access; neither shows an access claim.
+- **The reader is entered only on a download record.** `Reader(downloadId)` is navigated to once a
+  record exists, never on a paper id. It shows a transfer's progress, never partial pages, and
+  refuses to present a file it cannot render — the demo placeholder is named as demo output, not
+  shown as the paper.
+- **Rendering is windowed and bounded.** `ReaderPageWindow` keeps the visible pages plus one either
+  side, within four screens' worth of pixels; past that the visible pages render narrower rather
+  than not at all. Evicted bitmaps are recycled after a grace period, never at once, and every
+  `PdfRenderer` call is serialised on one thread. `ReaderMemoryDeviceTest` checks the bound on a
+  device.
+- **Reading positions have no foreign key to downloads.** `DownloadDao` upserts with `REPLACE`,
+  which is delete-and-insert, so a cascade would wipe a position on every progress update. Removing
+  a download goes through the `@Transaction` `DownloadDao.delete`, which removes its position too.
 - **Room is the source of truth for the UI.** Remote or fake results are mapped and persisted, then
   the UI observes Room — never the network response directly.
 - **Every tab navigation goes through `navigateToTab`.** Bottom-bar taps and error routes alike, so
