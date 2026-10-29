@@ -101,7 +101,7 @@ class Migration2To3Test {
                 .name(DB_NAME)
                 .callback(object : SupportSQLiteOpenHelper.Callback(2) {
                     override fun onCreate(db: SupportSQLiteDatabase) {
-                        VERSION_2_SCHEMA.forEach(db::execSQL)
+                        HistoricalSchemas.VERSION_2.forEach(db::execSQL)
                     }
 
                     override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
@@ -199,52 +199,5 @@ class Migration2To3Test {
 
     private companion object {
         const val DB_NAME = "migration-2-3-test.db"
-
-        /** The tables as they existed at schema version 2, before the unique index. */
-        val VERSION_2_SCHEMA = listOf(
-            """
-            CREATE TABLE papers (
-                id TEXT NOT NULL PRIMARY KEY, title TEXT NOT NULL, authors TEXT NOT NULL,
-                venue TEXT, publicationYear INTEGER, type TEXT NOT NULL, topics TEXT NOT NULL,
-                citationCount INTEGER, abstractText TEXT, updatedAtEpochMillis INTEGER NOT NULL
-            )
-            """.trimIndent(),
-            """
-            CREATE TABLE access_snapshots (
-                paperId TEXT NOT NULL PRIMARY KEY, state TEXT, sourceUrl TEXT, descriptorUrl TEXT,
-                descriptorMimeType TEXT, descriptorProvenance TEXT,
-                descriptorGenerated INTEGER NOT NULL, descriptorExpiresAtEpochMillis INTEGER,
-                provenance TEXT, checkedAtEpochMillis INTEGER NOT NULL,
-                FOREIGN KEY(paperId) REFERENCES papers(id) ON DELETE CASCADE
-            )
-            """.trimIndent(),
-            """
-            CREATE TABLE search_queries (
-                queryKey TEXT NOT NULL PRIMARY KEY, queryText TEXT NOT NULL, sortOrder TEXT NOT NULL,
-                openAccessOnly INTEGER NOT NULL, pdfAvailableOnly INTEGER NOT NULL,
-                publicationYear INTEGER, workType TEXT, topic TEXT, nextCursor TEXT,
-                totalCount INTEGER, fetchedAtEpochMillis INTEGER NOT NULL
-            )
-            """.trimIndent(),
-            """
-            CREATE TABLE search_results (
-                queryKey TEXT NOT NULL, position INTEGER NOT NULL, paperId TEXT NOT NULL,
-                PRIMARY KEY(queryKey, position),
-                FOREIGN KEY(queryKey) REFERENCES search_queries(queryKey) ON DELETE CASCADE
-            )
-            """.trimIndent(),
-            "CREATE INDEX index_search_results_paperId ON search_results (paperId)",
-            "CREATE INDEX index_search_results_queryKey ON search_results (queryKey)",
-            "CREATE TABLE recent_searches (queryText TEXT NOT NULL PRIMARY KEY, lastUsedAtEpochMillis INTEGER NOT NULL)",
-            "CREATE TABLE saved_papers (paperId TEXT NOT NULL PRIMARY KEY, savedAtEpochMillis INTEGER NOT NULL)",
-            """
-            CREATE TABLE downloads (
-                id TEXT NOT NULL PRIMARY KEY, paperId TEXT NOT NULL, title TEXT NOT NULL,
-                state TEXT NOT NULL, sourceUrl TEXT NOT NULL, mimeType TEXT,
-                bytesDownloaded INTEGER, totalBytes INTEGER, localContentUri TEXT,
-                errorMessage TEXT, updatedAtEpochMillis INTEGER NOT NULL
-            )
-            """.trimIndent(),
-        )
     }
 }
