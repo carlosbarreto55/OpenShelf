@@ -7,6 +7,7 @@ import com.example.paperReader.domain.model.DownloadState
 import com.example.paperReader.domain.repository.DownloadsRepository
 import com.example.paperReader.domain.repository.RepositoryResult
 import com.example.paperReader.ui.components.DownloadFeedback
+import com.example.paperReader.ui.components.OpenFileRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -17,8 +18,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-data class OpenFileRequest(val downloadId: String, val contentUri: String, val mimeType: String?)
 
 @HiltViewModel
 class DownloadsViewModel @Inject constructor(

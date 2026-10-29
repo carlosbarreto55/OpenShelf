@@ -6,6 +6,7 @@ import com.example.paperReader.domain.model.PaperId
 import com.example.paperReader.domain.repository.FakeDownloadsRepository
 import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.domain.repository.RepositoryResult
+import com.example.paperReader.ui.components.OpenFileRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
