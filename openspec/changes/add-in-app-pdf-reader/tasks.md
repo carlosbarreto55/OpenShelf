@@ -42,11 +42,11 @@
 ## 5. Read PDF action
 
 - [x] 5.1 Add `ReadPaperUseCase`: given a paper, return a reader target for a completed record with its file present or a queued/running record, and otherwise call `startDownload` and return a target only on success.
-- [ ] 5.2 Replace `AccessAction.DownloadPdf` with `ReadPdf` in `toAccessAction()`, keeping the gate unchanged: only a confirmed `DirectPdf` yields it, and every other state still yields `null`. Label it "Read PDF", distinct from "Read online".
-- [ ] 5.3 Wire the action in the search, detail and library ViewModels to `ReadPaperUseCase`, emitting a one-shot navigation event to `Reader(downloadId)` on a target and the shared download feedback on failure.
-- [ ] 5.4 Add tests: the action is absent for every non-confirmed access state; a completed paper opens with no network call; a running transfer is reused rather than duplicated; a failed, canceled or file-missing record starts a confirmed transfer; a confirmation failure navigates nowhere and enqueues nothing.
-- [ ] 5.5 Add a test that a paper whose access drops from confirmed to uncertain loses Read PDF on its card and detail even while its completed file is on the device, and stays reachable from Downloads.
-- [ ] 5.6 Re-record the screenshot goldens affected by the label change with `:app:recordRoborazziDemoDebug`.
+- [x] 5.2 Replace `AccessAction.DownloadPdf` with `ReadPdf` in `toAccessAction()`, keeping the gate unchanged: only a confirmed `DirectPdf` yields it, and every other state still yields `null`. Label it "Read PDF", distinct from "Read online".
+- [x] 5.3 Wire the action in the search, detail and library ViewModels to `ReadPaperUseCase`, emitting a one-shot navigation event to `Reader(downloadId)` on a target and the shared download feedback on failure.
+- [x] 5.4 Add tests: the action is absent for every non-confirmed access state; a completed paper opens with no network call; a running transfer is reused rather than duplicated; a failed, canceled or file-missing record starts a confirmed transfer; a confirmation failure navigates nowhere and enqueues nothing.
+- [x] 5.5 Add a test that a paper whose access drops from confirmed to uncertain loses Read PDF on its card and detail even while its completed file is on the device, and stays reachable from Downloads.
+- [x] 5.6 Re-record the screenshot goldens affected by the label change with `:app:recordRoborazziDemoDebug`.
 
 ## 6. Continue reading
 
