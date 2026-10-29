@@ -7,12 +7,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.paperReader.data.local.dao.AccessSnapshotDao
 import com.example.paperReader.data.local.dao.DownloadDao
 import com.example.paperReader.data.local.dao.PaperDao
+import com.example.paperReader.data.local.dao.ReadingPositionDao
 import com.example.paperReader.data.local.dao.RecentSearchDao
 import com.example.paperReader.data.local.dao.SavedPaperDao
 import com.example.paperReader.data.local.dao.SearchCacheDao
 import com.example.paperReader.data.local.entity.AccessSnapshotEntity
 import com.example.paperReader.data.local.entity.DownloadEntity
 import com.example.paperReader.data.local.entity.PaperEntity
+import com.example.paperReader.data.local.entity.ReadingPositionEntity
 import com.example.paperReader.data.local.entity.RecentSearchEntity
 import com.example.paperReader.data.local.entity.SavedPaperEntity
 import com.example.paperReader.data.local.entity.SearchQueryEntity
@@ -27,8 +29,9 @@ import com.example.paperReader.data.local.entity.SearchResultEntity
         RecentSearchEntity::class,
         SavedPaperEntity::class,
         DownloadEntity::class,
+        ReadingPositionEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -44,6 +47,8 @@ abstract class PaperReaderDatabase : RoomDatabase() {
     abstract fun savedPaperDao(): SavedPaperDao
 
     abstract fun downloadDao(): DownloadDao
+
+    abstract fun readingPositionDao(): ReadingPositionDao
 
     companion object {
         const val DATABASE_NAME = "paperreader.db"

@@ -3,7 +3,7 @@ package com.example.paperReader.ui.components
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,7 +19,10 @@ import com.example.paperReader.ui.theme.spacing
 
 /** The two — and only two — access actions the product allows. See [toAccessAction]. */
 sealed interface AccessAction {
-    data class DownloadPdf(val descriptor: ConfirmedPdfDescriptor) : AccessAction
+    /** Reads the paper in the app, downloading it through the confirmed pipeline when it is not
+     * on the device yet. There is deliberately no separate Download action: reading is how a paper
+     * gets onto the device. */
+    data class ReadPdf(val descriptor: ConfirmedPdfDescriptor) : AccessAction
 
     data class ReadOnline(val sourceUrl: String, val provenance: String?) : AccessAction
 }
@@ -33,7 +36,7 @@ sealed interface AccessAction {
  * other state simply yields no action, badge, or source row.
  */
 fun AccessResolution.toAccessAction(): AccessAction? = when (this) {
-    is AccessResolution.DirectPdf -> AccessAction.DownloadPdf(descriptor)
+    is AccessResolution.DirectPdf -> AccessAction.ReadPdf(descriptor)
     is AccessResolution.OpenFullText -> AccessAction.ReadOnline(sourceUrl, provenance)
     AccessResolution.NoFreeFullText,
     AccessResolution.Paywalled,
@@ -47,18 +50,19 @@ fun AccessResolution.toAccessAction(): AccessAction? = when (this) {
 @Composable
 fun AccessActionRow(
     access: AccessResolution,
-    onDownloadPdf: (ConfirmedPdfDescriptor) -> Unit,
+    onReadPdf: () -> Unit,
     onReadOnline: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (val action = access.toAccessAction()) {
-        is AccessAction.DownloadPdf -> TextButton(
-            onClick = { onDownloadPdf(action.descriptor) },
+        // "Read PDF", in the app — distinct from "Read online", which opens the publisher's page.
+        is AccessAction.ReadPdf -> TextButton(
+            onClick = onReadPdf,
             modifier = modifier.semantics { role = Role.Button },
         ) {
-            Icon(imageVector = Icons.Outlined.Download, contentDescription = null)
+            Icon(imageVector = Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null)
             Text(
-                text = "Download PDF",
+                text = "Read PDF",
                 modifier = Modifier.padding(start = MaterialTheme.spacing.control),
             )
         }

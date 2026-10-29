@@ -22,6 +22,11 @@ sealed interface PaperReaderRoute {
 
     @Serializable
     data class PaperDetail(val paperId: String) : PaperReaderRoute
+
+    /** Keyed by the download record, which carries the file and the transfer state. Only ever
+     * navigated to once that record exists. */
+    @Serializable
+    data class Reader(val downloadId: String) : PaperReaderRoute
 }
 
 data class TopLevelDestination(

@@ -85,7 +85,7 @@ class SearchScreenStatesTest {
                     onLoadNextPage = {},
                     onToggleSave = {},
                     onOpenPaper = {},
-                    onStartDownload = {},
+                    onReadPdf = {},
                     onReadOnline = {},
                 )
             }
@@ -297,7 +297,7 @@ class SearchScreenStatesTest {
     }
 
     private fun assertNoAccessAffordance() {
-        composeRule.onNodeWithText("Download PDF").assertDoesNotExist()
+        composeRule.onNodeWithText("Read PDF").assertDoesNotExist()
         composeRule.onNodeWithText("Read online").assertDoesNotExist()
     }
 
@@ -318,7 +318,7 @@ class SearchScreenStatesTest {
                     onLoadNextPage = {},
                     onToggleSave = {},
                     onOpenPaper = {},
-                    onStartDownload = {},
+                    onReadPdf = {},
                     onReadOnline = {},
                 )
             }

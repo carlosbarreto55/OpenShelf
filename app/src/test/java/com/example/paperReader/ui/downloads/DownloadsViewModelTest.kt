@@ -6,6 +6,7 @@ import com.example.paperReader.domain.model.PaperId
 import com.example.paperReader.domain.repository.FakeDownloadsRepository
 import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.domain.repository.RepositoryResult
+import com.example.paperReader.ui.components.OpenFileRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -78,12 +79,38 @@ class DownloadsViewModelTest {
     }
 
     @Test
-    fun openEmitsAFileRequestForACompletedDownload() = runTest(dispatcher) {
+    fun openReadsACompletedDownloadInTheAppNotAnotherApp() = runTest(dispatcher) {
+        val record = downloadRecord(state = DownloadState.COMPLETED, localContentUri = "content://demo/1", mimeType = "text/plain")
+        val readerRequests = mutableListOf<String>()
+        val fileRequests = mutableListOf<OpenFileRequest>()
+        viewModel.openReaderRequestsFlow.onEach { readerRequests.add(it) }.launchIn(CoroutineScope(dispatcher))
+        viewModel.openFileRequestsFlow.onEach { fileRequests.add(it) }.launchIn(CoroutineScope(dispatcher))
+
+        viewModel.open(record)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(record.id), readerRequests)
+        assertTrue(fileRequests.isEmpty())
+    }
+
+    @Test
+    fun onlyACompletedDownloadOpensTheReader() = runTest(dispatcher) {
+        val readerRequests = mutableListOf<String>()
+        viewModel.openReaderRequestsFlow.onEach { readerRequests.add(it) }.launchIn(CoroutineScope(dispatcher))
+
+        viewModel.open(downloadRecord(state = DownloadState.FAILED))
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(readerRequests.isEmpty())
+    }
+
+    @Test
+    fun openingInAnotherAppHandsOverTheContentUriOnly() = runTest(dispatcher) {
         val record = downloadRecord(state = DownloadState.COMPLETED, localContentUri = "content://demo/1", mimeType = "text/plain")
         val requests = mutableListOf<OpenFileRequest>()
         viewModel.openFileRequestsFlow.onEach { requests.add(it) }.launchIn(CoroutineScope(dispatcher))
 
-        viewModel.open(record)
+        viewModel.openInAnotherApp(record)
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(listOf(OpenFileRequest(record.id, "content://demo/1", "text/plain")), requests)

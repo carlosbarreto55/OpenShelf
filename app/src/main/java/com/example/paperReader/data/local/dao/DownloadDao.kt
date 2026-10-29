@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.example.paperReader.data.local.entity.DownloadEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -18,6 +19,20 @@ interface DownloadDao {
     @Query("SELECT * FROM downloads ORDER BY updatedAtEpochMillis DESC")
     fun observeAll(): Flow<List<DownloadEntity>>
 
+    /**
+     * Removes a record and the reading position stored for its paper, together. The position goes
+     * first, while the record that names its paper still exists, so "continue reading" can never
+     * offer a paper whose download was removed (design.md decision 3).
+     */
+    @Transaction
+    suspend fun delete(id: String) {
+        deleteReadingPositionFor(id)
+        deleteRecord(id)
+    }
+
+    @Query("DELETE FROM reading_positions WHERE paperId IN (SELECT paperId FROM downloads WHERE id = :id)")
+    suspend fun deleteReadingPositionFor(id: String)
+
     @Query("DELETE FROM downloads WHERE id = :id")
-    suspend fun delete(id: String)
+    suspend fun deleteRecord(id: String)
 }

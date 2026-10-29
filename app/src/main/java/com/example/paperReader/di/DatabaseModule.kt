@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.room.Room
 import com.example.paperReader.data.local.MIGRATION_1_2
 import com.example.paperReader.data.local.MIGRATION_2_3
+import com.example.paperReader.data.local.MIGRATION_3_4
 import com.example.paperReader.data.local.PaperReaderDatabase
 import com.example.paperReader.data.local.dao.AccessSnapshotDao
 import com.example.paperReader.data.local.dao.DownloadDao
 import com.example.paperReader.data.local.dao.PaperDao
+import com.example.paperReader.data.local.dao.ReadingPositionDao
 import com.example.paperReader.data.local.dao.RecentSearchDao
 import com.example.paperReader.data.local.dao.SavedPaperDao
 import com.example.paperReader.data.local.dao.SearchCacheDao
@@ -26,7 +28,7 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): PaperReaderDatabase {
         return Room.databaseBuilder(context, PaperReaderDatabase::class.java, PaperReaderDatabase.DATABASE_NAME)
             .addCallback(PaperReaderDatabase.enableForeignKeysCallback)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
     }
 
@@ -47,4 +49,7 @@ object DatabaseModule {
 
     @Provides
     fun provideDownloadDao(database: PaperReaderDatabase): DownloadDao = database.downloadDao()
+
+    @Provides
+    fun provideReadingPositionDao(database: PaperReaderDatabase): ReadingPositionDao = database.readingPositionDao()
 }

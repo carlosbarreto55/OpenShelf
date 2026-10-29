@@ -1,7 +1,5 @@
 package com.example.paperReader.ui.downloads
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,21 +25,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.paperReader.R
-import com.example.paperReader.domain.model.DownloadFailureReason
 import com.example.paperReader.domain.model.DownloadRecord
 import com.example.paperReader.domain.model.DownloadState
+import com.example.paperReader.ui.components.DownloadFailureSummary
 import com.example.paperReader.ui.components.DownloadFeedbackNotice
 import com.example.paperReader.ui.components.EmptyState
 import com.example.paperReader.ui.components.LoadingState
 import com.example.paperReader.ui.components.NoticeState
+import com.example.paperReader.ui.components.openInAnotherApp
 import com.example.paperReader.ui.theme.spacing
 
 @Composable
 fun DownloadsRoute(
+    onOpenReader: (downloadId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DownloadsViewModel = hiltViewModel(),
 ) {
@@ -50,16 +49,11 @@ fun DownloadsRoute(
 
     LaunchedEffect(viewModel) {
         viewModel.openFileRequestsFlow.collect { request ->
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(request.contentUri.toUri(), request.mimeType ?: "*/*")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            try {
-                context.startActivity(intent)
-            } catch (_: ActivityNotFoundException) {
-                viewModel.onNoViewerAvailable(request.downloadId)
-            }
+            if (!context.openInAnotherApp(request)) viewModel.onNoViewerAvailable(request.downloadId)
         }
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.openReaderRequestsFlow.collect(onOpenReader)
     }
 
     DownloadsScreen(
@@ -67,6 +61,7 @@ fun DownloadsRoute(
         onRetry = viewModel::retry,
         onCancel = viewModel::cancel,
         onOpen = viewModel::open,
+        onOpenInAnotherApp = viewModel::openInAnotherApp,
         onDismissNoViewerNotice = viewModel::dismissNoViewerNotice,
         onClearCompleted = viewModel::clearCompleted,
         onDismissDownloadFeedback = viewModel::dismissDownloadFeedback,
@@ -84,6 +79,7 @@ fun DownloadsScreen(
     modifier: Modifier = Modifier,
     onClearCompleted: () -> Unit = {},
     onDismissDownloadFeedback: () -> Unit = {},
+    onOpenInAnotherApp: (DownloadRecord) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -158,6 +154,7 @@ fun DownloadsScreen(
                         onRetry = { onRetry(record.id) },
                         onCancel = { onCancel(record.id) },
                         onOpen = { onOpen(record) },
+                        onOpenInAnotherApp = { onOpenInAnotherApp(record) },
                     )
                 }
             }
@@ -171,6 +168,7 @@ private fun DownloadRow(
     onRetry: () -> Unit,
     onCancel: () -> Unit,
     onOpen: () -> Unit,
+    onOpenInAnotherApp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -210,7 +208,7 @@ private fun DownloadRow(
             }
 
             if (record.state == DownloadState.FAILED) {
-                DownloadFailureText(errorMessage = record.errorMessage)
+                DownloadFailureSummary(errorMessage = record.errorMessage)
             } else if (record.errorMessage != null) {
                 Text(
                     text = record.errorMessage,
@@ -229,8 +227,14 @@ private fun DownloadRow(
                         Text(stringResource(R.string.downloads_action_retry))
                     }
 
-                    DownloadState.COMPLETED -> TextButton(onClick = onOpen) {
-                        Text(stringResource(R.string.downloads_action_open))
+                    // Open reads it here; the handoff stays a real, explicit choice beside it.
+                    DownloadState.COMPLETED -> {
+                        TextButton(onClick = onOpenInAnotherApp) {
+                            Text(stringResource(R.string.downloads_action_open_elsewhere))
+                        }
+                        TextButton(onClick = onOpen) {
+                            Text(stringResource(R.string.downloads_action_open))
+                        }
                     }
 
                     DownloadState.CANCELED -> TextButton(onClick = onRetry) {
@@ -239,45 +243,6 @@ private fun DownloadRow(
                 }
             }
         }
-    }
-}
-
-/**
- * A failure named by its cause, followed by the record's own safe message, followed by the fact the
- * user actually needs: nothing half-written was left behind. That last line is unconditional
- * because it is unconditionally true — bytes are only ever written after validation succeeds, and a
- * canceled transfer deletes whatever it had.
- */
-@Composable
-private fun DownloadFailureText(errorMessage: String?, modifier: Modifier = Modifier) {
-    val headingRes = when (DownloadFailureReason.fromMessage(errorMessage)) {
-        DownloadFailureReason.INVALID_PDF -> R.string.downloads_failure_heading_invalid_pdf
-        DownloadFailureReason.INTERRUPTED -> R.string.downloads_failure_heading_interrupted
-        // A transport failure carries the underlying I/O message; there is no cause to name beyond
-        // "it did not finish", and inventing one would be a claim we cannot support.
-        null -> R.string.downloads_failure_heading_generic
-    }
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.control),
-    ) {
-        Text(
-            text = stringResource(headingRes),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.error,
-        )
-        if (errorMessage != null) {
-            Text(
-                text = errorMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
-        Text(
-            text = stringResource(R.string.downloads_failure_no_partial_file),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

@@ -117,7 +117,7 @@ class SearchControlsTest {
                     onLoadNextPage = {},
                     onToggleSave = {},
                     onOpenPaper = {},
-                    onStartDownload = {},
+                    onReadPdf = {},
                     onReadOnline = {},
                 )
             }
@@ -154,7 +154,7 @@ class SearchControlsTest {
                             onLoadNextPage = {},
                             onToggleSave = {},
                             onOpenPaper = {},
-                            onStartDownload = {},
+                            onReadPdf = {},
                             onReadOnline = {},
                         )
                     }
@@ -292,7 +292,7 @@ class SearchControlsTest {
                     onLoadNextPage = {},
                     onToggleSave = {},
                     onOpenPaper = {},
-                    onStartDownload = {},
+                    onReadPdf = {},
                     onReadOnline = {},
                 )
             }

@@ -10,9 +10,9 @@ class AccessPresentationTest {
     private val descriptor = ConfirmedPdfDescriptor(url = "https://demo.paperreader.invalid/papers/W1.pdf")
 
     @Test
-    fun directPdfMapsToDownloadAction() {
+    fun directPdfMapsToReadPdfAction() {
         val action = AccessResolution.DirectPdf(descriptor).toAccessAction()
-        assertEquals(AccessAction.DownloadPdf(descriptor), action)
+        assertEquals(AccessAction.ReadPdf(descriptor), action)
     }
 
     @Test

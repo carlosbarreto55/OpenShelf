@@ -12,11 +12,11 @@ import com.example.paperReader.domain.model.PaperQuery
 import com.example.paperReader.domain.model.PaperSearchRequest
 import com.example.paperReader.domain.model.SearchQuery
 import com.example.paperReader.domain.model.SortOrder
-import com.example.paperReader.domain.repository.DownloadsRepository
 import com.example.paperReader.domain.repository.PaperRepository
 import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.domain.repository.RepositoryResult
 import com.example.paperReader.domain.usecase.PageLoadOutcome
+import com.example.paperReader.domain.usecase.ReadPaperUseCase
 import com.example.paperReader.domain.usecase.SearchCursorSession
 import com.example.paperReader.domain.usecase.SearchPapersUseCase
 import com.example.paperReader.domain.usecase.ToggleSavedPaperUseCase
@@ -25,6 +25,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -34,6 +35,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -43,7 +45,7 @@ class SearchViewModel @Inject constructor(
     private val repository: PaperRepository,
     private val searchPapers: SearchPapersUseCase,
     private val toggleSavedPaper: ToggleSavedPaperUseCase,
-    private val downloadsRepository: DownloadsRepository,
+    private val readPaper: ReadPaperUseCase,
     private val demoDisclosurePreferences: DemoDisclosurePreferences,
     backendConfiguration: BackendConfiguration,
 ) : ViewModel() {
@@ -54,6 +56,11 @@ class SearchViewModel @Inject constructor(
     private val refreshSignal = MutableStateFlow(0)
     private val appendState = MutableStateFlow(AppendState.IDLE)
     private val downloadFeedback = MutableStateFlow<DownloadFeedback?>(null)
+
+    private val readerRequests = Channel<String>(Channel.BUFFERED)
+
+    /** Download ids to open the reader on, one per successful Read PDF. */
+    val openReaderRequestsFlow = readerRequests.receiveAsFlow()
     private val paginationOutcome = MutableStateFlow<PageLoadOutcome?>(null)
 
     /** Whether the indicator has reopened the explanation in *this* session. Deliberately not
@@ -154,13 +161,14 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch { toggleSavedPaper(paper) }
     }
 
-    fun startDownload(paper: Paper) {
+    fun readPdf(paper: Paper) {
         viewModelScope.launch {
             downloadFeedback.value = null
-            // The transfer is authorized by a fresh descriptor confirmation, so this can fail for
-            // reasons the user needs to hear about: no PDF, not found, offline, timeout.
-            when (val result = downloadsRepository.startDownload(paper)) {
-                is RepositoryResult.Success -> Unit
+            // Read PDF may have to confirm with the backend before a transfer, so it can fail for
+            // reasons the user needs to hear: no PDF, not found, offline, timeout. It opens the
+            // reader only once there is a download record to open it on.
+            when (val result = readPaper(paper)) {
+                is RepositoryResult.Success -> readerRequests.send(result.value)
                 is RepositoryResult.Failure -> downloadFeedback.value = DownloadFeedback.from(result.error)
             }
         }

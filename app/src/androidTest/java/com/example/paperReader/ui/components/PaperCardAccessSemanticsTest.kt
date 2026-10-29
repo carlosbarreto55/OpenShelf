@@ -20,15 +20,15 @@ class PaperCardAccessSemanticsTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun confirmedDirectPdfShowsDownloadAction() {
+    fun confirmedDirectPdfShowsReadPdfAction() {
         val paper = paperWith(
             AccessResolution.DirectPdf(ConfirmedPdfDescriptor(url = "https://demo.paperreader.invalid/papers/W1.pdf")),
         )
         composeRule.setContent {
-            PaperReaderTheme { PaperCard(paper = paper, onClick = {}, onToggleSave = {}, onDownloadPdf = {}, onReadOnline = {}) }
+            PaperReaderTheme { PaperCard(paper = paper, onClick = {}, onToggleSave = {}, onReadPdf = {}, onReadOnline = {}) }
         }
 
-        composeRule.onNodeWithText("Download PDF").assertIsDisplayed()
+        composeRule.onNodeWithText("Read PDF").assertIsDisplayed()
         composeRule.onNodeWithText("Read online").assertDoesNotExist()
     }
 
@@ -36,11 +36,11 @@ class PaperCardAccessSemanticsTest {
     fun confirmedOpenFullTextShowsReadOnlineAction() {
         val paper = paperWith(AccessResolution.OpenFullText(sourceUrl = "https://demo.paperreader.invalid/papers/W1"))
         composeRule.setContent {
-            PaperReaderTheme { PaperCard(paper = paper, onClick = {}, onToggleSave = {}, onDownloadPdf = {}, onReadOnline = {}) }
+            PaperReaderTheme { PaperCard(paper = paper, onClick = {}, onToggleSave = {}, onReadPdf = {}, onReadOnline = {}) }
         }
 
         composeRule.onNodeWithText("Read online").assertIsDisplayed()
-        composeRule.onNodeWithText("Download PDF").assertDoesNotExist()
+        composeRule.onNodeWithText("Read PDF").assertDoesNotExist()
     }
 
     @Test
@@ -56,13 +56,13 @@ class PaperCardAccessSemanticsTest {
             PaperReaderTheme {
                 Column {
                     silentPapers.forEach { paper ->
-                        PaperCard(paper = paper, onClick = {}, onToggleSave = {}, onDownloadPdf = {}, onReadOnline = {})
+                        PaperCard(paper = paper, onClick = {}, onToggleSave = {}, onReadPdf = {}, onReadOnline = {})
                     }
                 }
             }
         }
 
-        composeRule.onNodeWithText("Download PDF").assertDoesNotExist()
+        composeRule.onNodeWithText("Read PDF").assertDoesNotExist()
         composeRule.onNodeWithText("Read online").assertDoesNotExist()
     }
 

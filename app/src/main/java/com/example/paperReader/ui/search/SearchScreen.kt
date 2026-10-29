@@ -77,12 +77,16 @@ import kotlinx.coroutines.flow.map
 @Composable
 fun SearchRoute(
     onOpenPaper: (PaperId) -> Unit,
+    onOpenReader: (downloadId: String) -> Unit,
     onNavigateTo: (ErrorRoute) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
+    LaunchedEffect(viewModel) {
+        viewModel.openReaderRequestsFlow.collect(onOpenReader)
+    }
     SearchScreen(
         state = uiState,
         onQueryTextChanged = viewModel::onQueryTextChanged,
@@ -93,7 +97,7 @@ fun SearchRoute(
         onLoadNextPage = viewModel::loadNextPage,
         onToggleSave = viewModel::toggleSaved,
         onOpenPaper = { onOpenPaper(it.id) },
-        onStartDownload = viewModel::startDownload,
+        onReadPdf = viewModel::readPdf,
         onDismissDownloadFeedback = viewModel::dismissDownloadFeedback,
         onOpenDemoExplanation = viewModel::openDemoExplanation,
         onDismissDemoExplanation = viewModel::dismissDemoExplanation,
@@ -114,7 +118,7 @@ fun SearchScreen(
     onLoadNextPage: () -> Unit,
     onToggleSave: (Paper) -> Unit,
     onOpenPaper: (Paper) -> Unit,
-    onStartDownload: (Paper) -> Unit,
+    onReadPdf: (Paper) -> Unit,
     onDismissDownloadFeedback: () -> Unit = {},
     onOpenDemoExplanation: () -> Unit = {},
     onDismissDemoExplanation: () -> Unit = {},
@@ -302,7 +306,7 @@ fun SearchScreen(
                             paper = paper,
                             onClick = { onOpenPaper(paper) },
                             onToggleSave = { onToggleSave(paper) },
-                            onDownloadPdf = { onStartDownload(paper) },
+                            onReadPdf = { onReadPdf(paper) },
                             onReadOnline = onReadOnline,
                         )
                     }

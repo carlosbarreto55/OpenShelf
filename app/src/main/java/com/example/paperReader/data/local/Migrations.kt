@@ -43,3 +43,17 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         )
     }
 }
+
+/**
+ * v3 -> v4: `reading_positions`, where the in-app reader keeps each paper's last page. Purely
+ * additive — a new table and nothing else, so every existing row survives as it was.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `reading_positions` (`paperId` TEXT NOT NULL, " +
+                "`pageIndex` INTEGER NOT NULL, `pageOffsetFraction` REAL NOT NULL, " +
+                "`updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`paperId`))",
+        )
+    }
+}

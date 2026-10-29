@@ -1,5 +1,6 @@
 package com.example.paperReader.ui.search
 
+import com.example.paperReader.domain.usecase.ReadPaperUseCase
 import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -13,6 +14,7 @@ import com.example.paperReader.core.config.BackendMode
 import com.example.paperReader.domain.model.DownloadRecord
 import com.example.paperReader.domain.model.DownloadState
 import com.example.paperReader.domain.model.PaperId
+import com.example.paperReader.domain.repository.DownloadedFiles
 import com.example.paperReader.domain.repository.FakeDownloadsRepository
 import com.example.paperReader.domain.usecase.FakeLibraryRepository
 import com.example.paperReader.domain.usecase.SearchPapersUseCase
@@ -194,7 +196,7 @@ class DemoDisclosureTest {
             repository,
             SearchPapersUseCase(repository),
             ToggleSavedPaperUseCase(FakeLibraryRepository()),
-            FakeDownloadsRepository(),
+            ReadPaperUseCase(FakeDownloadsRepository(), DownloadedFiles { false }),
             preferences,
             BackendConfiguration(
                 mode = mode,
@@ -223,7 +225,7 @@ class DemoDisclosureTest {
                     onLoadNextPage = {},
                     onToggleSave = {},
                     onOpenPaper = {},
-                    onStartDownload = {},
+                    onReadPdf = {},
                     onDismissDemoExplanation = onDismissDemoExplanation,
                     onReadOnline = {},
                 )

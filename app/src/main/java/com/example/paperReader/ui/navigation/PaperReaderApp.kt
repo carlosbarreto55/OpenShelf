@@ -16,12 +16,14 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -35,6 +37,7 @@ import com.example.paperReader.ui.components.ErrorRoute
 import com.example.paperReader.ui.downloads.DownloadsRoute
 import com.example.paperReader.ui.library.LibraryRoute
 import com.example.paperReader.ui.paperdetail.PaperDetailRoute
+import com.example.paperReader.ui.reader.ReaderRoute
 import com.example.paperReader.ui.search.SearchRoute
 
 @Composable
@@ -76,6 +79,10 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
         val navigateToErrorRoute: (ErrorRoute) -> Unit = { route ->
             navController.navigateToTab(route.destination())
         }
+        // Pushed onto whichever tab's stack it is opened from; only ever with an existing record.
+        val openReader: (String) -> Unit = { downloadId ->
+            navController.navigate(PaperReaderRoute.Reader(downloadId))
+        }
 
         // No demo notice here: disclosing placeholder data is owed *once*, not as permanent
         // chrome on every destination. The search screen carries the dismissible explanation and
@@ -93,10 +100,10 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
             // and rapid taps stacked a new fade on one still running, overlapping the text of two
             // or three screens. Even a transition of no length keeps the outgoing screen composed
             // for a frame or two, so it is hidden from the first of them rather than left drawn
-            // under the new one — except beneath a detail push, which slides over it.
+            // under the new one — except beneath a push, which slides over it.
             enterTransition = { EnterTransition.None },
             exitTransition = {
-                if (targetState.destination.hasRoute<PaperReaderRoute.PaperDetail>()) {
+                if (targetState.destination.isPushed()) {
                     ExitTransition.None
                 } else {
                     hiddenAtOnce
@@ -114,6 +121,7 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
                     onOpenPaper = { paperId: PaperId ->
                         navController.navigate(PaperReaderRoute.PaperDetail(paperId.value))
                     },
+                    onOpenReader = openReader,
                     onNavigateTo = navigateToErrorRoute,
                 )
             }
@@ -122,10 +130,11 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
                     onOpenPaper = { paperId: PaperId ->
                         navController.navigate(PaperReaderRoute.PaperDetail(paperId.value))
                     },
+                    onOpenReader = openReader,
                 )
             }
             composable<PaperReaderRoute.Downloads> {
-                DownloadsRoute()
+                DownloadsRoute(onOpenReader = openReader)
             }
             // A slide and no fade: detail draws an opaque surface, so while it moves it covers the
             // screen beneath instead of blending its text with it. Leaving detail for a tab is a
@@ -140,8 +149,21 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
             ) {
                 PaperDetailRoute(
                     onBack = { navController.popBackStack() },
+                    onOpenReader = openReader,
                     onNavigateTo = navigateToErrorRoute,
                 )
+            }
+            // Pushed like detail, from whichever tab's stack Read PDF or Open was used on, so the
+            // tab it was opened from stays highlighted and back returns there.
+            composable<PaperReaderRoute.Reader>(
+                enterTransition = {
+                    slideIntoContainer(SlideDirection.Start, tween(DETAIL_SLIDE_MILLIS))
+                },
+                popExitTransition = {
+                    slideOutOfContainer(SlideDirection.End, tween(DETAIL_SLIDE_MILLIS))
+                },
+            ) {
+                ReaderRoute(onBack = { navController.popBackStack() })
             }
         }
     }
@@ -152,6 +174,11 @@ private const val DETAIL_SLIDE_MILLIS = 250
 
 /** Gone from the first frame it is leaving on; see the NavHost's transitions. */
 private val hiddenAtOnce = fadeOut(snap())
+
+/** Destinations pushed over a tab rather than switched to: they slide in over the screen beneath,
+ * which therefore stays drawn under them instead of being hidden at once. */
+private fun NavDestination.isPushed(): Boolean =
+    hasRoute<PaperReaderRoute.PaperDetail>() || hasRoute<PaperReaderRoute.Reader>()
 
 /** The one place an [ErrorRoute] becomes a destination, so nothing below navigation needs to know
  * the graph exists. */

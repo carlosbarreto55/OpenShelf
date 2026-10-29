@@ -98,7 +98,7 @@ class PaperDetailSectionSpacingTest {
                     onBack = {},
                     onRetry = {},
                     onToggleSave = {},
-                    onDownloadPdf = {},
+                    onReadPdf = {},
                     onReadOnline = {},
                 )
             }

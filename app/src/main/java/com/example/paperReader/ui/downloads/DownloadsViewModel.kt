@@ -7,6 +7,7 @@ import com.example.paperReader.domain.model.DownloadState
 import com.example.paperReader.domain.repository.DownloadsRepository
 import com.example.paperReader.domain.repository.RepositoryResult
 import com.example.paperReader.ui.components.DownloadFeedback
+import com.example.paperReader.ui.components.OpenFileRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -18,8 +19,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class OpenFileRequest(val downloadId: String, val contentUri: String, val mimeType: String?)
-
 @HiltViewModel
 class DownloadsViewModel @Inject constructor(
     private val downloadsRepository: DownloadsRepository,
@@ -30,6 +29,11 @@ class DownloadsViewModel @Inject constructor(
 
     private val openFileRequests = Channel<OpenFileRequest>(Channel.BUFFERED)
     val openFileRequestsFlow = openFileRequests.receiveAsFlow()
+
+    private val openReaderRequests = Channel<String>(Channel.BUFFERED)
+
+    /** Download ids to open the in-app reader on. */
+    val openReaderRequestsFlow = openReaderRequests.receiveAsFlow()
 
     val uiState: StateFlow<DownloadsUiState> = combine(
         downloadsRepository.observeDownloads(),
@@ -76,7 +80,15 @@ class DownloadsViewModel @Inject constructor(
         viewModelScope.launch { downloadsRepository.cancelDownload(downloadId) }
     }
 
+    /** Opens a completed download in the in-app reader, which checks the file before rendering
+     * anything and offers the external handoff itself when it cannot render it. */
     fun open(record: DownloadRecord) {
+        if (record.state != DownloadState.COMPLETED) return
+        viewModelScope.launch { openReaderRequests.send(record.id) }
+    }
+
+    /** The explicit external handoff: the record's content URI with a temporary read grant. */
+    fun openInAnotherApp(record: DownloadRecord) {
         val uri = record.localContentUri ?: return
         noViewerAvailableForDownloadId.value = null
         viewModelScope.launch { openFileRequests.send(OpenFileRequest(record.id, uri, record.mimeType)) }

@@ -5,18 +5,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.paperReader.domain.model.Paper
 import com.example.paperReader.domain.model.PaperId
-import com.example.paperReader.domain.repository.DownloadsRepository
 import com.example.paperReader.domain.repository.PaperRepository
 import com.example.paperReader.domain.repository.RepositoryError
 import com.example.paperReader.domain.repository.RepositoryResult
+import com.example.paperReader.domain.usecase.ReadPaperUseCase
 import com.example.paperReader.domain.usecase.ToggleSavedPaperUseCase
 import com.example.paperReader.ui.components.DownloadFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -25,7 +27,7 @@ class PaperDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: PaperRepository,
     private val toggleSavedPaper: ToggleSavedPaperUseCase,
-    private val downloadsRepository: DownloadsRepository,
+    private val readPaper: ReadPaperUseCase,
 ) : ViewModel() {
 
     // Navigation-Compose's typed routes populate the SavedStateHandle using the route's property
@@ -33,6 +35,11 @@ class PaperDetailViewModel @Inject constructor(
     private val paperId = PaperId(checkNotNull(savedStateHandle.get<String>("paperId")))
     private val networkStatus = MutableStateFlow<NetworkStatus>(NetworkStatus.Loading)
     private val downloadFeedback = MutableStateFlow<DownloadFeedback?>(null)
+
+    private val readerRequests = Channel<String>(Channel.BUFFERED)
+
+    /** Download ids to open the reader on, one per successful Read PDF. */
+    val openReaderRequestsFlow = readerRequests.receiveAsFlow()
 
     val uiState: StateFlow<PaperDetailUiState> = combine(
         repository.observePaper(paperId),
@@ -55,12 +62,15 @@ class PaperDetailViewModel @Inject constructor(
         viewModelScope.launch { toggleSavedPaper(paper) }
     }
 
-    fun startDownload() {
+    fun readPdf() {
         val paper = (uiState.value.content as? PaperDetailContent.Loaded)?.paper ?: return
         viewModelScope.launch {
             downloadFeedback.value = null
-            when (val result = downloadsRepository.startDownload(paper)) {
-                is RepositoryResult.Success -> Unit
+            // Read PDF may have to confirm with the backend before a transfer, so it can fail for
+            // reasons the user needs to hear: no PDF, not found, offline, timeout. It opens the
+            // reader only once there is a download record to open it on.
+            when (val result = readPaper(paper)) {
+                is RepositoryResult.Success -> readerRequests.send(result.value)
                 is RepositoryResult.Failure -> downloadFeedback.value = DownloadFeedback.from(result.error)
             }
         }

@@ -1,19 +1,54 @@
 ## ADDED Requirements
 
+### Requirement: Read a paper from its confirmed PDF action
+Activating Read PDF SHALL bring the user to the paper in the in-app reader, fetching it through the download pipeline when no usable local copy exists. Reading MUST NOT bypass transfer-time descriptor confirmation or PDF validation, and the reader MUST NOT be entered when no download record exists for the paper.
+
+#### Scenario: Paper is already on the device
+- **WHEN** a user activates Read PDF for a paper whose download is completed and whose managed file exists
+- **THEN** the system opens the reader on that file without starting a transfer or contacting the backend
+
+#### Scenario: Paper is not on the device yet
+- **WHEN** a user activates Read PDF for a paper with no download record, or whose record is failed, canceled, or completed with its file missing
+- **THEN** the system starts the download through the same confirmation the downloads capability requires, and opens the reader only after the download record has been created
+
+#### Scenario: Confirmation fails
+- **WHEN** descriptor confirmation fails for a Read PDF activation
+- **THEN** the system does not open the reader, reports the failure where the action was taken through the shared error presentation, and enqueues no work
+
+#### Scenario: A transfer is already running
+- **WHEN** a user activates Read PDF for a paper whose download is queued or running
+- **THEN** the system opens the reader on that existing download without starting a second transfer
+
+#### Scenario: Reader follows the transfer
+- **WHEN** the reader is open on a download that is queued or running
+- **THEN** it shows the transfer's progress, offers to cancel it, and presents the document as soon as the download completes and the file is classified readable
+
+#### Scenario: Transfer fails while the reader is open
+- **WHEN** the download the reader is following fails
+- **THEN** the reader states the failure cause, offers a retry that goes through descriptor confirmation again, and presents no partial content
+
+#### Scenario: User leaves during the transfer
+- **WHEN** the user leaves the reader while the download is still queued or running
+- **THEN** the download continues and remains visible in the downloads list
+
+#### Scenario: Paper read is a paper downloaded
+- **WHEN** a paper has been fetched through Read PDF
+- **THEN** its download record appears in the downloads list like any other download, is readable offline, and is removed by clearing completed downloads
+
 ### Requirement: Open a paper in the reader
-The application SHALL open a paper in an in-app reader only from a completed download whose managed local file exists and passes PDF validation. The reader MUST NOT be reachable for any other paper.
+The application SHALL present a paper's pages in the in-app reader only for a completed download whose managed local file exists and passes PDF validation. The reader MUST NOT be reachable for a paper that has no download record.
 
 #### Scenario: Open a completed download
 - **WHEN** a user opens a completed, validated download
 - **THEN** the system presents the paper in the in-app reader without leaving the application
 
-#### Scenario: Paper has no completed download
-- **WHEN** a paper has no completed download record
-- **THEN** no route into the reader is presented for it
+#### Scenario: Paper has no download record
+- **WHEN** a paper has no download record
+- **THEN** no route into the reader is presented for it other than a Read PDF action that creates one
 
 #### Scenario: Managed file is missing
 - **WHEN** a completed record's managed local file no longer exists on disk
-- **THEN** the system does not open the reader, reports that the file is no longer available, and offers to download it again if the access descriptor is still valid
+- **THEN** the system does not render the reader, reports that the file is no longer available, and offers to read it again — which downloads it through descriptor confirmation — only if the paper's access is still a confirmed PDF
 
 ### Requirement: Read a paper
 The reader SHALL present the document's pages in order, SHALL allow the user to move between pages and to zoom, and SHALL report the current page against the total.

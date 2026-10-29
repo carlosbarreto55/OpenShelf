@@ -1,5 +1,10 @@
 package com.example.paperReader.ui.search
 
+import com.example.paperReader.data.local.TestFixtures
+import kotlinx.coroutines.flow.first
+import com.example.paperReader.domain.repository.testDownloadRecord
+import com.example.paperReader.domain.usecase.ReadPaperUseCase
+import com.example.paperReader.domain.repository.DownloadedFiles
 import com.example.paperReader.core.config.BackendConfiguration
 import com.example.paperReader.core.config.BackendMode
 import com.example.paperReader.domain.model.CursorPage
@@ -61,7 +66,7 @@ class SearchViewModelTest {
         repository,
         SearchPapersUseCase(repository),
         ToggleSavedPaperUseCase(libraryRepository),
-        downloadsRepository,
+        ReadPaperUseCase(downloadsRepository, DownloadedFiles { false }),
         demoDisclosurePreferences,
         BackendConfiguration(
             mode = mode,
@@ -219,12 +224,15 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun startDownloadDelegatesToDownloadsRepository() = runTest(dispatcher) {
-        val paper = testPaper("W1")
-        viewModel.startDownload(paper)
+    fun readPdfOpensTheReaderOnTheConfirmedDownload() = runTest(dispatcher) {
+        val paper = testPaper("W1", access = TestFixtures.directPdf())
+        downloadsRepository.startResult = RepositoryResult.Success(testDownloadRecord("W1"))
+
+        viewModel.readPdf(paper)
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(listOf(paper), downloadsRepository.startDownloadCalls)
+        assertEquals("download-W1", viewModel.openReaderRequestsFlow.first())
     }
 
     @Test
@@ -370,13 +378,16 @@ class SearchViewModelTest {
     fun aFailedDownloadConfirmationIsSurfacedRatherThanDiscarded() = runTest(dispatcher) {
         downloadsRepository.startResult = RepositoryResult.Failure(RepositoryError.NoDownloadableContent)
 
-        viewModel.startDownload(testPaper("W1"))
+        val readerRequests = mutableListOf<String>()
+        viewModel.openReaderRequestsFlow.onEach { readerRequests += it }.launchIn(CoroutineScope(dispatcher))
+        viewModel.readPdf(testPaper("W1", access = TestFixtures.directPdf()))
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
             RepositoryError.NoDownloadableContent,
             viewModel.uiState.value.downloadFeedback?.error,
         )
+        assertTrue("a failed confirmation opens no reader", readerRequests.isEmpty())
 
         viewModel.dismissDownloadFeedback()
         dispatcher.scheduler.advanceUntilIdle()

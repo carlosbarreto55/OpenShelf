@@ -19,20 +19,20 @@ class PaperDetailScreenAccessSemanticsTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun confirmedDirectPdfShowsDownloadAction() {
+    fun confirmedDirectPdfShowsReadPdfAction() {
         val paper = paperWith(
             AccessResolution.DirectPdf(ConfirmedPdfDescriptor(url = "https://demo.paperreader.invalid/papers/W1.pdf")),
         )
         setContentWith(paper)
 
-        composeRule.onNodeWithText("Download PDF").assertIsDisplayed()
+        composeRule.onNodeWithText("Read PDF").assertIsDisplayed()
     }
 
     @Test
     fun paywalledPaperExposesNoAccessAction() {
         setContentWith(paperWith(AccessResolution.Paywalled))
 
-        composeRule.onNodeWithText("Download PDF").assertDoesNotExist()
+        composeRule.onNodeWithText("Read PDF").assertDoesNotExist()
         composeRule.onNodeWithText("Read online").assertDoesNotExist()
     }
 
@@ -44,7 +44,7 @@ class PaperDetailScreenAccessSemanticsTest {
                     onBack = {},
                     onRetry = {},
                     onToggleSave = {},
-                    onDownloadPdf = {},
+                    onReadPdf = {},
                     onReadOnline = {},
                 )
             }
