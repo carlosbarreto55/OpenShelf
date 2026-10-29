@@ -83,7 +83,10 @@ hand-edit these files as plain notes. Check task boxes as work completes.
 
 Active changes at the time of writing: `restructure-search-screen-chrome`,
 `refine-paper-presentation`, `add-library-collections`, `add-in-app-pdf-reader`. The last two each
-take a Room schema version (4 and 5).
+add a Room migration; neither owns a fixed version — whichever is implemented first takes the next
+free version on `main` (3 today). `add-in-app-pdf-reader` replaces the `DirectPdf` action's
+Download PDF with Read PDF, which downloads through the same confirmed pipeline and opens the
+in-app reader; until it ships, Download PDF is current behavior.
 
 `differentiate-screen-states`, `remediate-android-technical-debt`, `add-production-backend-flavor`
 and `isolate-demo-implementations` are **archived** under `openspec/changes/archive/` and their
