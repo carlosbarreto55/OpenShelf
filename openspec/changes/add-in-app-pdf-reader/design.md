@@ -72,7 +72,7 @@ The schema version is **not pre-assigned**. The database is at version 3 today, 
 
 The entry point lists papers with a stored position whose file still exists, most recent first. It is a query over the position table joined to downloads — not a second concept — so it cannot drift from what is actually resumable.
 
-Where it appears is deliberately left open: Downloads is the honest home, the Library is the more useful one. Decided before implementation, not during.
+It lives in the **Library** (decided 2026-10-28, before implementation): Downloads is where the files are, but the Library is where a user goes to get back to their papers. Downloads keeps listing every file, so no resumable paper is reachable only from the Library.
 
 ### 5. Unreadable files are classified, and the demo file is classified first
 
@@ -143,6 +143,5 @@ Rollback: reverting step 5 restores Download PDF without removing anything else;
 
 ## Open Questions
 
-- Where does "continue reading" live — Downloads, Library, or both? Library is more useful; Downloads is where the files are. Decide before step 6.
 - Should the reader offer a night-mode inversion of page bitmaps? Cheap to implement, frequently wrong on figures and colour plates. Deferred.
 - Should a paper opened in the reader be marked read, and should that appear in the Library? Interacts with the collections change; deferred until both have landed.

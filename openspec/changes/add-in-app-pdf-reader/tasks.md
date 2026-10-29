@@ -41,7 +41,7 @@
 
 ## 5. Read PDF action
 
-- [ ] 5.1 Add `ReadPaperUseCase`: given a paper, return a reader target for a completed record with its file present or a queued/running record, and otherwise call `startDownload` and return a target only on success.
+- [x] 5.1 Add `ReadPaperUseCase`: given a paper, return a reader target for a completed record with its file present or a queued/running record, and otherwise call `startDownload` and return a target only on success.
 - [ ] 5.2 Replace `AccessAction.DownloadPdf` with `ReadPdf` in `toAccessAction()`, keeping the gate unchanged: only a confirmed `DirectPdf` yields it, and every other state still yields `null`. Label it "Read PDF", distinct from "Read online".
 - [ ] 5.3 Wire the action in the search, detail and library ViewModels to `ReadPaperUseCase`, emitting a one-shot navigation event to `Reader(downloadId)` on a target and the shared download feedback on failure.
 - [ ] 5.4 Add tests: the action is absent for every non-confirmed access state; a completed paper opens with no network call; a running transfer is reused rather than duplicated; a failed, canceled or file-missing record starts a confirmed transfer; a confirmation failure navigates nowhere and enqueues nothing.
@@ -50,7 +50,7 @@
 
 ## 6. Continue reading
 
-- [ ] 6.1 Decide where the entry point lives — Downloads, Library, or both (see design open question).
+- [x] 6.1 Decide where the entry point lives — Downloads, Library, or both (see design open question). Decided: Library.
 - [ ] 6.2 Implement it as a query over stored positions joined to downloads, filtered to papers whose file still exists, most recently read first.
 - [ ] 6.3 Add tests: a paper whose file was removed never appears; ordering is by most recently read.
 
