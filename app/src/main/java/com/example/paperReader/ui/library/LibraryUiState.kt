@@ -1,6 +1,7 @@
 package com.example.paperReader.ui.library
 
 import com.example.paperReader.domain.model.Paper
+import com.example.paperReader.domain.model.ResumablePaper
 import com.example.paperReader.ui.components.DownloadFeedback
 
 sealed interface LibraryContent {
@@ -20,4 +21,9 @@ data class LibraryUiState(
      * cause-named surface search and detail use.
      */
     val downloadFeedback: DownloadFeedback? = null,
+    /**
+     * Downloaded papers with a stored reading position whose file is still on the device, most
+     * recently read first. Independent of saving: a paper read but never saved is here too.
+     */
+    val continueReading: List<ResumablePaper> = emptyList(),
 )

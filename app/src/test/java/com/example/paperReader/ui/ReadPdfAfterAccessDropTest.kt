@@ -21,6 +21,7 @@ import com.example.paperReader.ui.library.LibraryViewModel
 import com.example.paperReader.ui.paperdetail.FakePaperDetailRepository
 import com.example.paperReader.ui.paperdetail.PaperDetailContent
 import com.example.paperReader.ui.paperdetail.PaperDetailViewModel
+import com.example.paperReader.ui.reader.FakeReadingPositionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -67,7 +68,7 @@ class ReadPdfAfterAccessDropTest {
     @Test
     fun theCardLosesReadPdfAndReadingItIsRefused() = runTest(dispatcher) {
         val library = FakeLibraryRepository().apply { save(confirmed) }
-        val viewModel = LibraryViewModel(library, ToggleSavedPaperUseCase(library), readPaper)
+        val viewModel = LibraryViewModel(library, ToggleSavedPaperUseCase(library), readPaper, FakeReadingPositionRepository())
         viewModel.uiState.onEach { }.launchIn(CoroutineScope(dispatcher))
         dispatcher.scheduler.advanceUntilIdle()
         assertNotNull(cardAccessAction(viewModel))

@@ -51,8 +51,8 @@
 ## 6. Continue reading
 
 - [x] 6.1 Decide where the entry point lives — Downloads, Library, or both (see design open question). Decided: Library.
-- [ ] 6.2 Implement it as a query over stored positions joined to downloads, filtered to papers whose file still exists, most recently read first.
-- [ ] 6.3 Add tests: a paper whose file was removed never appears; ordering is by most recently read.
+- [x] 6.2 Implement it as a query over stored positions joined to downloads, filtered to papers whose file still exists, most recently read first.
+- [x] 6.3 Add tests: a paper whose file was removed never appears; ordering is by most recently read.
 
 ## 7. Validation
 

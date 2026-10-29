@@ -43,6 +43,10 @@
     <string name="library_description">Keep important papers close, even when you are offline.</string>
     <string name="library_empty_title">Your library is empty</string>
     <string name="library_empty_description">Saved papers will appear here for quick access.</string>
+    <string name="library_continue_reading_title">Continue reading</string>
+    <string name="library_continue_reading_page">Page %1$d</string>
+    <string name="library_continue_reading_action">Continue reading</string>
+    <string name="library_saved_title">Saved papers</string>
     <string name="downloads_title">Downloads</string>
     <string name="downloads_description">Track verified PDF transfers and open completed files.</string>
     <string name="downloads_empty_title">No downloads yet</string>
