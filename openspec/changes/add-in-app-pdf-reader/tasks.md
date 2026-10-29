@@ -56,7 +56,7 @@
 
 ## 7. Validation
 
-- [ ] 7.1 Test a long, high-resolution document under a constrained heap and confirm no `OutOfMemoryError` and no unbounded growth while scrolling.
+- [x] 7.1 Test a long, high-resolution document under a constrained heap and confirm no `OutOfMemoryError` and no unbounded growth while scrolling.
 - [ ] 7.2 Confirm the set of access states that yield an action is unchanged, that no access affordance or claim was added anywhere, and that no transfer starts without descriptor confirmation.
 - [ ] 7.3 Confirm download validation, mappers, access resolution and the remote contract are unchanged.
 - [ ] 7.4 Run `./gradlew :app:verifyAllFlavors`, `:app:verifyApiContract` and `:app:verifyConnected`, and compile every instrumentation source set — the shared `androidTest`, `androidTestHttp` and `androidTestIntegration` — since this change touches repository and navigation signatures.
