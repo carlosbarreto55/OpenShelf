@@ -116,4 +116,16 @@
     <string name="downloads_failure_heading_generic">Download failed</string>
     <string name="downloads_failure_no_partial_file">No partial file was kept.</string>
     <string name="downloads_action_clear_completed">Clear completed</string>
+    <!-- In-app reader. Each refusal says what is wrong with the file in its own words; none is
+         presented as a network or service failure, because none of them is one. -->
+    <string name="reader_refusal_missing_title">This paper isn\'t on the device any more</string>
+    <string name="reader_refusal_missing_message">The downloaded file is no longer here.</string>
+    <string name="reader_refusal_demo_title">This is demo output, not the paper</string>
+    <string name="reader_refusal_demo_message">This build has no live backend, so the download is a placeholder file. There is no paper to show.</string>
+    <string name="reader_refusal_not_pdf_title">This file isn\'t a PDF</string>
+    <string name="reader_refusal_not_pdf_message">The download doesn\'t contain a PDF the reader can open.</string>
+    <string name="reader_refusal_encrypted_title">This PDF is password-protected</string>
+    <string name="reader_refusal_encrypted_message">The reader can\'t open password-protected files. Another app may be able to.</string>
+    <string name="reader_refusal_malformed_title">This PDF can\'t be opened</string>
+    <string name="reader_refusal_malformed_message">The file is damaged or incomplete. Another app may be able to open it.</string>
 </resources>
