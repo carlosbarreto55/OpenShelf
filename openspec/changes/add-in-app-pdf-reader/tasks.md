@@ -34,10 +34,10 @@
 
 ## 4. Open routing from Downloads
 
-- [ ] 4.1 Route Open on a completed download to the reader instead of the `ACTION_VIEW` intent.
-- [ ] 4.2 Keep the external handoff as an explicit action on the record, preserving the content URI and temporary read permission, and keep the existing no-viewer-available feedback for it.
-- [ ] 4.3 Confirm no unrestricted filesystem path is exposed by either route.
-- [ ] 4.4 Add tests for both routes and for the fallback when in-app rendering fails.
+- [x] 4.1 Route Open on a completed download to the reader instead of the `ACTION_VIEW` intent.
+- [x] 4.2 Keep the external handoff as an explicit action on the record, preserving the content URI and temporary read permission, and keep the existing no-viewer-available feedback for it.
+- [x] 4.3 Confirm no unrestricted filesystem path is exposed by either route.
+- [x] 4.4 Add tests for both routes and for the fallback when in-app rendering fails.
 
 ## 5. Read PDF action
 

@@ -53,6 +53,19 @@ class DownloadsScreenTest {
     }
 
     @Test
+    fun aCompletedDownloadCanStillBeHandedToAnotherApp() {
+        var handedOff = false
+        setContentWith(
+            record(state = DownloadState.COMPLETED, localContentUri = "content://demo/1", mimeType = "application/pdf"),
+            onOpenInAnotherApp = { handedOff = true },
+        )
+
+        composeRule.onNodeWithText("Open in another app").performClick()
+
+        assert(handedOff)
+    }
+
+    @Test
     fun completedRealPdfShowsNoDemoNotice() {
         setContentWith(record(state = DownloadState.COMPLETED, localContentUri = "content://demo/1", mimeType = "application/pdf"))
 
@@ -64,6 +77,7 @@ class DownloadsScreenTest {
         onRetry: (String) -> Unit = {},
         onCancel: (String) -> Unit = {},
         onOpen: (DownloadRecord) -> Unit = {},
+        onOpenInAnotherApp: (DownloadRecord) -> Unit = {},
     ) {
         val group = when (record.state) {
             DownloadState.QUEUED, DownloadState.RUNNING -> DownloadGroup.IN_PROGRESS
@@ -79,6 +93,7 @@ class DownloadsScreenTest {
                     onRetry = onRetry,
                     onCancel = onCancel,
                     onOpen = onOpen,
+                    onOpenInAnotherApp = onOpenInAnotherApp,
                     onDismissNoViewerNotice = {},
                 )
             }

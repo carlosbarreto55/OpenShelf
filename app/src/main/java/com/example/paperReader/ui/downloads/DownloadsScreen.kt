@@ -40,6 +40,7 @@ import com.example.paperReader.ui.theme.spacing
 
 @Composable
 fun DownloadsRoute(
+    onOpenReader: (downloadId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DownloadsViewModel = hiltViewModel(),
 ) {
@@ -51,12 +52,16 @@ fun DownloadsRoute(
             if (!context.openInAnotherApp(request)) viewModel.onNoViewerAvailable(request.downloadId)
         }
     }
+    LaunchedEffect(viewModel) {
+        viewModel.openReaderRequestsFlow.collect(onOpenReader)
+    }
 
     DownloadsScreen(
         state = uiState,
         onRetry = viewModel::retry,
         onCancel = viewModel::cancel,
         onOpen = viewModel::open,
+        onOpenInAnotherApp = viewModel::openInAnotherApp,
         onDismissNoViewerNotice = viewModel::dismissNoViewerNotice,
         onClearCompleted = viewModel::clearCompleted,
         onDismissDownloadFeedback = viewModel::dismissDownloadFeedback,
@@ -74,6 +79,7 @@ fun DownloadsScreen(
     modifier: Modifier = Modifier,
     onClearCompleted: () -> Unit = {},
     onDismissDownloadFeedback: () -> Unit = {},
+    onOpenInAnotherApp: (DownloadRecord) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -148,6 +154,7 @@ fun DownloadsScreen(
                         onRetry = { onRetry(record.id) },
                         onCancel = { onCancel(record.id) },
                         onOpen = { onOpen(record) },
+                        onOpenInAnotherApp = { onOpenInAnotherApp(record) },
                     )
                 }
             }
@@ -161,6 +168,7 @@ private fun DownloadRow(
     onRetry: () -> Unit,
     onCancel: () -> Unit,
     onOpen: () -> Unit,
+    onOpenInAnotherApp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -219,8 +227,14 @@ private fun DownloadRow(
                         Text(stringResource(R.string.downloads_action_retry))
                     }
 
-                    DownloadState.COMPLETED -> TextButton(onClick = onOpen) {
-                        Text(stringResource(R.string.downloads_action_open))
+                    // Open reads it here; the handoff stays a real, explicit choice beside it.
+                    DownloadState.COMPLETED -> {
+                        TextButton(onClick = onOpenInAnotherApp) {
+                            Text(stringResource(R.string.downloads_action_open_elsewhere))
+                        }
+                        TextButton(onClick = onOpen) {
+                            Text(stringResource(R.string.downloads_action_open))
+                        }
                     }
 
                     DownloadState.CANCELED -> TextButton(onClick = onRetry) {

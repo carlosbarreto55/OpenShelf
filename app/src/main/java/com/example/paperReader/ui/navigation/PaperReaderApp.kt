@@ -78,6 +78,10 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
         val navigateToErrorRoute: (ErrorRoute) -> Unit = { route ->
             navController.navigateToTab(route.destination())
         }
+        // Pushed onto whichever tab's stack it is opened from; only ever with an existing record.
+        val openReader: (String) -> Unit = { downloadId ->
+            navController.navigate(PaperReaderRoute.Reader(downloadId))
+        }
 
         // No demo notice here: disclosing placeholder data is owed *once*, not as permanent
         // chrome on every destination. The search screen carries the dismissible explanation and
@@ -127,7 +131,7 @@ fun PaperReaderApp(modifier: Modifier = Modifier) {
                 )
             }
             composable<PaperReaderRoute.Downloads> {
-                DownloadsRoute()
+                DownloadsRoute(onOpenReader = openReader)
             }
             // A slide and no fade: detail draws an opaque surface, so while it moves it covers the
             // screen beneath instead of blending its text with it. Leaving detail for a tab is a
