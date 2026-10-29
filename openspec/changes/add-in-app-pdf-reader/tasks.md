@@ -17,20 +17,20 @@
 
 ## 3. Reader screen
 
-- [ ] 3.1 Add `PaperReaderRoute.Reader(downloadId)` and wire it into the `NavHost` as a pushed destination.
-- [ ] 3.2 Add the reader ViewModel: observe the download record and expose an immutable reader state per record state — queued/running, failed, canceled, completed.
-- [ ] 3.3 While the record is queued or running, show determinate progress when byte counts are known and offer cancel; when it completes, proceed to file verification without user action.
-- [ ] 3.4 When the record fails, present the cause through `ErrorPresentation` and offer a retry through `retryDownload`, so it goes through descriptor confirmation again.
-- [ ] 3.5 For a completed record, verify file presence and classify it; refuse to render when the file is missing or the classification is not readable — including the demo placeholder — with cause-specific copy.
-- [ ] 3.6 Offer reading again when the file is missing only if the paper's access is still a confirmed PDF; offer the external handoff when the file exists but cannot be rendered.
-- [ ] 3.7 Implement windowed page rendering with a prefetch margin, a display-derived bitmap cache budget, and explicit recycling outside the window.
-- [ ] 3.8 Cancel render requests for pages that leave the window rather than queueing them.
-- [ ] 3.9 Implement pinch-to-zoom by re-rendering the visible page at the higher resolution rather than upscaling.
-- [ ] 3.10 Present the current page number against the total and allow direct page navigation.
-- [ ] 3.11 Restore page and zoom across rotation and process restart.
-- [ ] 3.12 Persist the reading position on a debounce while reading, plus a final write when the screen leaves the composition.
-- [ ] 3.13 Expose page navigation, zoom, transfer progress and the error states to accessibility services with meaningful labels and a logical traversal order.
-- [ ] 3.14 Add tests: following a transfer to completion, a transfer failing while open, leaving mid-transfer (the download continues), multi-page navigation, resume at a stored position, resume after simulated process death, each refusal case.
+- [x] 3.1 Add `PaperReaderRoute.Reader(downloadId)` and wire it into the `NavHost` as a pushed destination.
+- [x] 3.2 Add the reader ViewModel: observe the download record and expose an immutable reader state per record state — queued/running, failed, canceled, completed.
+- [x] 3.3 While the record is queued or running, show determinate progress when byte counts are known and offer cancel; when it completes, proceed to file verification without user action.
+- [x] 3.4 When the record fails, present the cause through `ErrorPresentation` and offer a retry through `retryDownload`, so it goes through descriptor confirmation again.
+- [x] 3.5 For a completed record, verify file presence and classify it; refuse to render when the file is missing or the classification is not readable — including the demo placeholder — with cause-specific copy.
+- [x] 3.6 Offer reading again when the file is missing only if the paper's access is still a confirmed PDF; offer the external handoff when the file exists but cannot be rendered.
+- [x] 3.7 Implement windowed page rendering with a prefetch margin, a display-derived bitmap cache budget, and explicit recycling outside the window.
+- [x] 3.8 Cancel render requests for pages that leave the window rather than queueing them.
+- [x] 3.9 Implement pinch-to-zoom by re-rendering the visible page at the higher resolution rather than upscaling.
+- [x] 3.10 Present the current page number against the total and allow direct page navigation.
+- [x] 3.11 Restore page and zoom across rotation and process restart.
+- [x] 3.12 Persist the reading position on a debounce while reading, plus a final write when the screen leaves the composition.
+- [x] 3.13 Expose page navigation, zoom, transfer progress and the error states to accessibility services with meaningful labels and a logical traversal order.
+- [x] 3.14 Add tests: following a transfer to completion, a transfer failing while open, leaving mid-transfer (the download continues), multi-page navigation, resume at a stored position, resume after simulated process death, each refusal case.
 
 ## 4. Open routing from Downloads
 
