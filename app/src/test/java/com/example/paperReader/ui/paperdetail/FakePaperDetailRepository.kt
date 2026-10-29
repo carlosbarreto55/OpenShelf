@@ -25,6 +25,11 @@ class FakePaperDetailRepository(initialPaper: Paper? = null) : PaperRepository {
     val refreshCalls = mutableListOf<PaperId>()
     private val papers = MutableStateFlow(initialPaper)
 
+    /** What the cached paper becomes, as a later refresh or another screen would leave it. */
+    fun setPaper(paper: Paper?) {
+        papers.value = paper
+    }
+
     override fun observeSearch(query: PaperQuery): Flow<CursorPage<Paper>> = flowOf(CursorPage(emptyList()))
 
     override suspend fun search(request: PaperSearchRequest): RepositoryResult<CursorPage<Paper>> =
