@@ -1,11 +1,11 @@
 ## 1. Rendering source
 
-- [ ] 1.1 Add a `PdfPageSource` interface: open a managed file, report page count, render a page at a target size, close.
-- [ ] 1.2 Implement it with `android.graphics.pdf.PdfRenderer`, serialising every call on a single dedicated dispatcher so the one-page-at-a-time and thread-safety constraints are enforced in one place.
-- [ ] 1.3 Add open-time classification: not a PDF by file signature, encrypted, malformed, file missing, or readable.
-- [ ] 1.4 Add tests in `test` for a valid multi-page PDF, an encrypted PDF, a corrupt file and a missing file.
-- [ ] 1.5 Add a test in `testDemo` that classifies the actual file `FakeDownloadManager` produces as not a PDF — not a synthetic stand-in.
-- [ ] 1.6 Add a test that a page failing to render is reported as unavailable rather than returning a blank bitmap.
+- [x] 1.1 Add a `PdfPageSource` interface: open a managed file, report page count, render a page at a target size, close.
+- [x] 1.2 Implement it with `android.graphics.pdf.PdfRenderer`, serialising every call on a single dedicated dispatcher so the one-page-at-a-time and thread-safety constraints are enforced in one place.
+- [x] 1.3 Add open-time classification: not a PDF by file signature, encrypted, malformed, file missing, or readable.
+- [x] 1.4 Add tests in `test` for a valid multi-page PDF, an encrypted PDF, a corrupt file and a missing file.
+- [x] 1.5 Add a test in `testDemo` that classifies the actual file `FakeDownloadManager` produces as not a PDF — not a synthetic stand-in.
+- [x] 1.6 Add a test that a page failing to render is reported as unavailable rather than returning a blank bitmap.
 
 ## 2. Reading position persistence
 
