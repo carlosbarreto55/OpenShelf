@@ -9,11 +9,11 @@
 
 ## 2. Reading position persistence
 
-- [ ] 2.1 Add a `reading_position` entity keyed by paper: page index, fractional intra-page offset, updated-at.
-- [ ] 2.2 Cascade removal so deleting a completed download and its file removes the stored position.
-- [ ] 2.3 Bump the Room schema to the next free version on `main` (3 today; `add-library-collections` may take 4 first), write the additive migration, and add a migration test from every exported earlier version asserting saved papers, collections if present, and download records survive.
-- [ ] 2.4 Add DAO operations: read a paper's position, upsert it, observe resumable papers ordered by most recently read.
-- [ ] 2.5 Add tests for upsert, cascade on download removal, and ordering of resumable papers.
+- [x] 2.1 Add a `reading_position` entity keyed by paper: page index, fractional intra-page offset, updated-at.
+- [x] 2.2 Cascade removal so deleting a completed download and its file removes the stored position.
+- [x] 2.3 Bump the Room schema to the next free version on `main` (3 today; `add-library-collections` may take 4 first), write the additive migration, and add a migration test from every exported earlier version asserting saved papers, collections if present, and download records survive.
+- [x] 2.4 Add DAO operations: read a paper's position, upsert it, observe resumable papers ordered by most recently read.
+- [x] 2.5 Add tests for upsert, cascade on download removal, and ordering of resumable papers.
 
 ## 3. Reader screen
 
